@@ -1,0 +1,93 @@
+/* admin.css - 管理画面専用スタイル */
+
+/* 基本設定 */
+body {
+    background-color: #f4f4f4; /* 背景は薄いグレー */
+    color: #333;
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    margin: 0;
+    line-height: 1.6;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+    transition: 0.3s;
+}
+
+/* ヘッダー */
+.admin-header {
+    background: #333; /* ダークヘッダー */
+    color: #fff;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.admin-header .logo {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+/* レイアウト */
+.dashboard {
+    display: flex;
+    gap: 30px;
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+/* サイドバー */
+.sidebar {
+    width: 200px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    height: fit-content;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+}
+.sidebar li {
+    margin-bottom: 15px;
+}
+.sidebar a {
+    display: block;
+    color: #666;
+}
+.sidebar a:hover, .sidebar a.active {
+    color: #004e92;
+    font-weight: bold;
+}
+
+/* メインエリア */
+.main-content {
+    flex: 1;
+}
+
+/* プロフィールカード */
+.profile-card {
+    background: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    display: flex;
+    gap: 30px;
+}
+
+/* ボタン */
+.btn-edit {
+    background: #004e92;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 5px;
+    display: inline-block;
+    margin-top: 15px;
+    font-size: 0.9rem;
+}
+.btn-edit:hover {
+    background: #003366;
+}
