@@ -1,0 +1,12 @@
+
+.DS_Store
+
+# データベース接続情報
+db_connect.php
+config.php
+
+# ログファイルなど
+*.log
+
+uploads/*
+!uploads/.gitkeep

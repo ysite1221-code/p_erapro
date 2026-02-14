@@ -19,9 +19,7 @@
 
     <header>
         <div class="header-inner">
-            <div style="display:flex; align-items:center;">
-                <div class="logo">ERAPRO</div>
-            </div>
+            <<?php include("header.php"); ?>
             
             <nav>
                 <a href="login_user.php" class="btn-login" style="border:1px solid #004e92; color:#004e92;">ログイン</a>
