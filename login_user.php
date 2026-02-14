@@ -43,7 +43,7 @@
         </form>
         
         <div style="margin-top:20px;">
-            <a href="signup.php" style="color:#004e92; font-size:0.9rem;">新規登録はこちら</a>
+            <a href="signup_user.php" style="color:#004e92; font-size:0.9rem;">新規登録はこちら</a>
         </div>
     </div>
 </body>

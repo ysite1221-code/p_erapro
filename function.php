@@ -11,12 +11,12 @@ function h($str) {
 
 // DB接続関数
 function db_conn() {
-    try {
-        $db_name = 'p_erapro';    // DB名
-        $db_host = '127.0.0.1';   // Host
-        $db_id   = 'root';        // ID
-        $db_pw   = '';            // MAMPの場合は 'root'
-        
+   try {
+        $db_name = 'p_erapro';    // ローカルで作ったDB名
+        $db_host = 'localhost';   // 
+        $db_id   = 'root';        // XAMPPのデフォルトID
+        $db_pw   = '';            // XAMPPのデフォルトパスワード（空）
+    
         return new PDO('mysql:dbname='.$db_name.';charset=utf8;host='.$db_host, $db_id, $db_pw);
     } catch (PDOException $e) {
         exit('DB Connection Error:' . $e->getMessage());
