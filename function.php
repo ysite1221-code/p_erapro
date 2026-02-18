@@ -46,4 +46,65 @@ function loginCheck() {
         $_SESSION["chk_ssid"] = session_id();
     }
 }
+
+// ==========================================
+// SendGridメール送信関数 (cURL版)
+// ==========================================
+function send_mail($to, $subject, $body) {
+    // ▼▼▼ ここにさっきのAPIキーを貼る ▼▼▼
+    $api_key = 'APIKEY IS HERE'; 
+    
+    // ▼▼▼ SendGridで認証した「From Email」を貼る ▼▼▼
+    $from_email = 'info@erapro.jp'; 
+    $from_name  = 'ERAPRO運営事務局';
+
+    $url = 'https://api.sendgrid.com/v3/mail/send';
+
+    $data = [
+        "personalizations" => [
+            [
+                "to" => [
+                    [
+                        "email" => $to
+                    ]
+                ]
+            ]
+        ],
+        "from" => [
+            "email" => $from_email,
+            "name"  => $from_name
+        ],
+        "subject" => $subject,
+        "content" => [
+            [
+                "type" => "text/plain",
+                "value" => $body
+            ]
+        ]
+    ];
+
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Authorization: Bearer ' . $api_key,
+        'Content-Type: application/json'
+    ]);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+    $response = curl_exec($ch);
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    // 202(Accepted) が返ってくれば成功
+    if ($http_code == 200 || $http_code == 202) {
+        return true;
+    } else {
+        // エラー時はログに残すなどの処理推奨
+        // echo "Mail Error: " . $response; 
+        return false;
+    }
+}
+
 ?>
