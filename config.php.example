@@ -1,0 +1,28 @@
+<?php
+// このファイルをコピーして config.php を作成し、実際の値を設定してください
+// $ cp config.php.example config.php
+//
+// config.php は .gitignore により git 管理外のため、実際のキーを書いても安全です
+
+// =====================
+// アプリケーション環境
+// =====================
+// 'development' にするとエラーが画面に表示されます
+// 本番サーバーでは必ず 'production' に変更してください
+define('APP_ENV', 'development');
+
+// =====================
+// データベース接続情報
+// =====================
+define('DB_NAME', 'p_erapro');
+define('DB_HOST', 'localhost');
+define('DB_USER', 'root');
+define('DB_PASS', '');
+
+// =====================
+// SendGrid メール設定
+// =====================
+// SendGrid ダッシュボード > Settings > API Keys で発行したキーを貼り付けてください
+define('SENDGRID_API_KEY', 'your_sendgrid_api_key_here');
+define('MAIL_FROM_EMAIL', 'info@erapro.jp');
+define('MAIL_FROM_NAME',  'ERAPRO運営事務局');

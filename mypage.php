@@ -1,7 +1,7 @@
 <?php
 session_start();
 include("function.php");
-loginCheck();
+loginCheck('agent');
 
 $id = $_SESSION["id"];
 $pdo = db_conn();

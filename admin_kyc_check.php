@@ -8,7 +8,10 @@ if(!isset($_SESSION["chk_ssid"]) || $_SESSION["chk_ssid"]!=session_id() || $_SES
 }
 
 // 2. 対象のAgentID取得
-$agent_id = $_GET["id"];
+$agent_id = (int)($_GET["id"] ?? 0);
+if ($agent_id <= 0) {
+    redirect("admin_dashboard.php");
+}
 
 // 3. データ取得
 $pdo = db_conn();

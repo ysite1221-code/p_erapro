@@ -1,17 +1,24 @@
 <?php
 include("function.php");
-$id = $_GET["id"]; // URLの?id=XXを受け取る
+
+$id = (int)($_GET["id"] ?? 0);
+if ($id <= 0) {
+    redirect("search.php");
+}
 
 $pdo = db_conn();
-$stmt = $pdo->prepare("SELECT * FROM agents WHERE id=:id");
+$stmt = $pdo->prepare("SELECT * FROM agents WHERE id=:id AND life_flg=0");
 $stmt->bindValue(':id', $id, PDO::PARAM_INT);
 $status = $stmt->execute();
 
 if ($status == false) {
     sql_error($stmt);
-} else {
-    $row = $stmt->fetch();
 }
+$row = $stmt->fetch();
+if (!$row) {
+    redirect("search.php");
+}
+
 // 画像処理
 $img = $row['profile_img'] ? 'uploads/'.$row['profile_img'] : 'https://placehold.co/800x300/e0e0e0/888?text=No+Image';
 ?>

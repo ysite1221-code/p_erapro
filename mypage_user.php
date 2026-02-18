@@ -1,7 +1,7 @@
 <?php
 session_start();
 include("function.php");
-loginCheck(); // ログインチェック
+loginCheck('user');
 
 $user_name = $_SESSION["name"];
 ?>
