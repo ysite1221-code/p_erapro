@@ -6,10 +6,7 @@
     <title>ERAPRO - 人で選ぶ保険</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        /* 一般ユーザー用：清潔感と安心感 */
-        .header-inner { justify-content: space-between; }
-        .link-for-agent { font-size: 0.8rem; color: #999; text-decoration: underline; margin-left: 20px; }
-        .hero { background: linear-gradient(135deg, #e0f7fa 0%, #ffffff 100%); color: #333; } /* 明るく優しい色味に変更 */
+        .hero { background: linear-gradient(135deg, #e0f7fa 0%, #ffffff 100%); color: #333; }
         .hero h1 { color: #004e92; }
         .hero p { color: #555; }
         .btn-search { background: #004e92; color: #fff; box-shadow: 0 5px 15px rgba(0,78,146,0.3); }
@@ -17,17 +14,7 @@
 </head>
 <body>
 
-    <header>
-        <div class="header-inner">
-            <?php include("header.php"); ?>
-            
-            <nav>
-                <a href="login_user.php" class="btn-login" style="border:1px solid #004e92; color:#004e92;">ログイン</a>
-                
-                <a href="agent_lp.php" class="link-for-agent">募集人の方はこちら</a>
-            </nav>
-        </div>
-    </header>
+    <?php include("header.php"); ?>
 
     <div class="hero">
         <h1>保険選びは、<br>「商品」から「人」へ。</h1>

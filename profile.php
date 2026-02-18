@@ -31,12 +31,11 @@ $img = $row['profile_img'] ? 'uploads/'.$row['profile_img'] : 'https://placehold
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <header>
-        <div class="header-inner">
-            <a href="search.php" style="font-size:0.9rem;">← 一覧に戻る</a>
-            <div class="logo">ERAPRO</div>
-            <div style="width:60px;"></div> </div>
-    </header>
+    <?php include("header.php"); ?>
+
+    <div style="max-width:1100px; margin:0 auto; padding:12px 24px;">
+        <a href="search.php" style="font-size:0.875rem; color:#666;">← 一覧に戻る</a>
+    </div>
 
     <img src="<?= $img ?>" style="width:100%; height:300px; object-fit:cover;">
 

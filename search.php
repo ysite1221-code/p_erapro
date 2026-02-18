@@ -75,11 +75,7 @@ if ($status == false) {
     </style>
 </head>
 <body>
-    <header>
-        <div class="header-inner">
-            <a href="index.php" class="logo">ERAPRO</a>
-        </div>
-    </header>
+    <?php include("header.php"); ?>
 
     <div class="container">
         <h2>プロフェッショナルを探す</h2>

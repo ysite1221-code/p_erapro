@@ -4,10 +4,17 @@ a { text-decoration: none; color: inherit; transition: 0.3s; }
 .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
 
 /* ヘッダー */
-header { background: #fff; padding: 15px 0; border-bottom: 1px solid #ddd; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-.header-inner { max-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
-.logo { font-size: 1.5rem; font-weight: bold; color: #004e92; }
-.btn-login { font-size: 0.9rem; color: #666; border: 1px solid #ddd; padding: 5px 15px; border-radius: 20px; }
+header { background: #fff; border-bottom: 1px solid #eee; box-shadow: 0 2px 10px rgba(0,0,0,0.06); position: sticky; top: 0; z-index: 100; }
+.header-inner { max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 24px; height: 64px; }
+.logo { display: flex; align-items: center; }
+.logo img { height: 40px; display: block; }
+.header-nav { display: flex; align-items: center; gap: 20px; }
+.header-nav-link { font-size: 0.85rem; color: #999; transition: color 0.2s; }
+.header-nav-link:hover { color: #004e92; }
+.btn-mypage { font-size: 0.875rem; color: #333; font-weight: 500; transition: color 0.2s; }
+.btn-mypage:hover { color: #004e92; }
+.btn-login { font-size: 0.875rem; font-weight: 600; color: #fff; background: #004e92; padding: 9px 22px; border-radius: 6px; transition: background 0.2s; display: inline-block; }
+.btn-login:hover { background: #003a70; color: #fff; }
 
 /* ヒーローエリア（LP用） */
 .hero { background: linear-gradient(135deg, #004e92, #000428); color: white; text-align: center; padding: 80px 20px; border-radius: 0 0 50% 50% / 20px; }
