@@ -119,6 +119,18 @@ $pending_agents = $stmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </div>
 
+        <?php if (isset($_GET['result'])): ?>
+            <?php if ($_GET['result'] === 'approved'): ?>
+                <div style="background:#d4edda; border-left:4px solid #28a745; padding:12px 16px; border-radius:4px; margin-bottom:20px; color:#155724;">
+                    ✅ Agentを承認しました。メールで通知しました。
+                </div>
+            <?php elseif ($_GET['result'] === 'rejected'): ?>
+                <div style="background:#f8d7da; border-left:4px solid #dc3545; padding:12px 16px; border-radius:4px; margin-bottom:20px; color:#721c24;">
+                    ⚠️ 否認しました。Agentへ再提出依頼メールを送信しました。
+                </div>
+            <?php endif; ?>
+        <?php endif; ?>
+
         <div class="kpi-container">
             <div class="card alert">
                 <div>
