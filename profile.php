@@ -51,6 +51,29 @@ if ($is_user) {
     }
 }
 
+// プロフィール閲覧トラッキング（自分自身は除外）
+$viewer_is_agent = (
+    isset($_SESSION['chk_ssid']) &&
+    $_SESSION['chk_ssid'] === session_id() &&
+    isset($_SESSION['user_type']) &&
+    $_SESSION['user_type'] === 'agent' &&
+    (int)$_SESSION['id'] === $agent_id
+);
+if (!$viewer_is_agent) {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS profile_views (
+        id        INT AUTO_INCREMENT PRIMARY KEY,
+        agent_id  INT NOT NULL,
+        viewer_ip VARCHAR(45) DEFAULT NULL,
+        viewed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_agent_date (agent_id, viewed_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+    $sv = $pdo->prepare("INSERT INTO profile_views (agent_id, viewer_ip, viewed_at) VALUES (:aid, :ip, NOW())");
+    $sv->bindValue(':aid', $agent_id, PDO::PARAM_INT);
+    $sv->bindValue(':ip',  $ip,       PDO::PARAM_STR);
+    $sv->execute();
+}
+
 // 画像処理
 $img = $row['profile_img']
     ? 'uploads/' . $row['profile_img']
@@ -259,7 +282,7 @@ $tags = array_filter(array_map('trim', explode(',', $row['tags'] ?? '')));
         <div class="action-area">
             <?php if ($is_user): ?>
 
-                <a href="#" class="btn-consult">💬 この人に相談する（準備中）</a>
+                <a href="message_room.php?agent_id=<?= $agent_id ?>" class="btn-consult">💬 この人に相談する</a>
 
                 <button
                     class="btn-fav btn-fav-heart <?= ($fav_status === 1) ? 'active' : '' ?>"

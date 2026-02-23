@@ -42,6 +42,15 @@ $stmt->bindValue(':uid', $user_id, PDO::PARAM_INT);
 $stmt->execute();
 $my_agents = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// 未読メッセージ数
+$stmt = $pdo->prepare(
+    "SELECT COUNT(*) FROM messages
+     WHERE sender_type=2 AND receiver_id=:uid AND is_read=0"
+);
+$stmt->bindValue(':uid', $user_id, PDO::PARAM_INT);
+$stmt->execute();
+$unread_msg_count = (int)$stmt->fetchColumn();
+
 // 診断タイプ
 $diag_type  = $_SESSION['diagnosis_type']  ?? null;
 $type_labels = [
@@ -301,6 +310,14 @@ $type_labels = [
             <p>診断結果でマッチング</p>
         </a>
         <?php endif; ?>
+        <a href="messages_list.php" class="qa-card" style="position:relative;">
+            <span class="qa-icon">💬</span>
+            <h3>メッセージ</h3>
+            <p>プロとやり取り</p>
+            <?php if ($unread_msg_count > 0): ?>
+            <span style="position:absolute; top:10px; right:10px; background:#e91e63; color:#fff; font-size:0.7rem; font-weight:bold; padding:2px 8px; border-radius:12px;"><?= $unread_msg_count ?></span>
+            <?php endif; ?>
+        </a>
     </div>
 
     <!-- タブナビ -->
