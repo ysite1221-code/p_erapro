@@ -234,11 +234,11 @@ $completion_pct = (int)round($filled / count($completion_items) * 100);
                 <li><a href="messages_list.php">
                     <span class="material-icons-outlined" style="vertical-align:middle; font-size:1.2rem; margin-right:5px;">chat</span>メッセージ
                 </a></li>
-                <li><a href="#" style="color:#aaa;">
-                    <span class="material-icons-outlined" style="vertical-align:middle; font-size:1.2rem; margin-right:5px;">people</span>顧客リスト (準備中)
+                <li><a href="customer_list.php">
+                    <span class="material-icons-outlined" style="vertical-align:middle; font-size:1.2rem; margin-right:5px;">people</span>顧客リスト
                 </a></li>
-                <li><a href="#" style="color:#aaa;">
-                    <span class="material-icons-outlined" style="vertical-align:middle; font-size:1.2rem; margin-right:5px;">analytics</span>レポート (準備中)
+                <li><a href="report.php">
+                    <span class="material-icons-outlined" style="vertical-align:middle; font-size:1.2rem; margin-right:5px;">analytics</span>レポート
                 </a></li>
             </ul>
             <div style="margin-top:30px; text-align:center;">

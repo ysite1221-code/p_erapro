@@ -40,7 +40,7 @@ if($status==false){
     // --------------------------------------------------------
     
     // 認証用URL (localhost部分はご自身の環境に合わせてください)
-    $verify_url = "http://localhost/p_erapro/verify.php?token=" . $email_token;
+    $verify_url = "http://localhost/sotsu/verify.php?token=" . $email_token;
     
     // メール本文作成
     $mail_subject = "【ERAPRO】メールアドレス認証のお願い";
