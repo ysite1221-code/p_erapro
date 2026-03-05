@@ -74,6 +74,48 @@ if (!$viewer_is_agent) {
     $sv->execute();
 }
 
+// クチコミ取得
+$pdo->exec("CREATE TABLE IF NOT EXISTS reviews (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    user_id    INT NOT NULL,
+    agent_id   INT NOT NULL,
+    rating     TINYINT NOT NULL,
+    comment    TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_user_agent (user_id, agent_id),
+    INDEX idx_agent (agent_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+$stmt = $pdo->prepare(
+    "SELECT r.rating, r.comment, r.updated_at, u.name AS user_name
+     FROM reviews r
+     JOIN users u ON r.user_id = u.id
+     WHERE r.agent_id = :aid
+     ORDER BY r.updated_at DESC"
+);
+$stmt->bindValue(':aid', $agent_id, PDO::PARAM_INT);
+$stmt->execute();
+$reviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$review_count = count($reviews);
+$avg_rating   = $review_count > 0
+    ? round(array_sum(array_column($reviews, 'rating')) / $review_count, 1)
+    : 0;
+
+// ログイン中Userが既にレビュー済みか
+$user_reviewed = false;
+if ($is_user) {
+    $chk = $pdo->prepare("SELECT id FROM reviews WHERE user_id=:uid AND agent_id=:aid");
+    $chk->bindValue(':uid', (int)$_SESSION['id'], PDO::PARAM_INT);
+    $chk->bindValue(':aid', $agent_id,             PDO::PARAM_INT);
+    $chk->execute();
+    $user_reviewed = (bool)$chk->fetchColumn();
+}
+
+// 投稿完了メッセージ
+$review_posted = isset($_GET['review']) && $_GET['review'] === '1';
+
 // 画像処理
 $img = $row['profile_img']
     ? 'uploads/' . $row['profile_img']
@@ -212,6 +254,53 @@ $tags = array_filter(array_map('trim', explode(',', $row['tags'] ?? '')));
         }
         .login-hint a { color: #004e92; }
 
+        /* クチコミセクション */
+        .review-summary {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: #f8f9ff;
+            border-radius: 10px;
+            padding: 16px 20px;
+            margin: 8px 0 20px;
+        }
+        .review-score {
+            font-size: 2.4rem;
+            font-weight: 800;
+            color: #004e92;
+            line-height: 1;
+        }
+        .review-stars-avg { font-size: 1.4rem; color: #f4c430; letter-spacing: 2px; }
+        .review-count { font-size: 0.85rem; color: #888; margin-top: 2px; }
+        .review-list { list-style: none; padding: 0; margin: 0; }
+        .review-item {
+            border-top: 1px solid #f0f0f0;
+            padding: 16px 0;
+        }
+        .review-item:first-child { border-top: none; }
+        .review-item-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .review-item-stars { font-size: 1rem; color: #f4c430; }
+        .review-item-date { font-size: 0.78rem; color: #bbb; }
+        .review-item-comment { font-size: 0.92rem; color: #444; line-height: 1.7; }
+        .review-empty { color: #aaa; font-size: 0.9rem; padding: 12px 0; }
+        .btn-review-post {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 24px;
+            background: #004e92;
+            color: #fff;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .btn-review-post:hover { background: #003a70; color: #fff; }
+
         /* トースト */
         #toast {
             position: fixed;
@@ -311,6 +400,56 @@ $tags = array_filter(array_map('trim', explode(',', $row['tags'] ?? '')));
             <a href="login_user.php">ログイン</a> または
             <a href="signup_user.php">新規登録</a> するとお気に入り・相談機能が使えます
         </p>
+        <?php endif; ?>
+
+        <!-- クチコミセクション -->
+        <div class="sec-title">クチコミ・評価</div>
+
+        <?php if ($review_posted): ?>
+        <p style="color:#004e92; font-weight:600; margin-bottom:16px;">✅ クチコミを投稿しました。ありがとうございます！</p>
+        <?php endif; ?>
+
+        <?php if ($review_count > 0): ?>
+        <div class="review-summary">
+            <div class="review-score"><?= number_format($avg_rating, 1) ?></div>
+            <div>
+                <div class="review-stars-avg">
+                    <?php
+                    $full  = floor($avg_rating);
+                    $half  = ($avg_rating - $full) >= 0.5 ? 1 : 0;
+                    $empty = 5 - $full - $half;
+                    echo str_repeat('★', $full);
+                    echo $half  ? '½' : '';
+                    echo str_repeat('☆', $empty);
+                    ?>
+                </div>
+                <div class="review-count"><?= $review_count ?> 件の評価</div>
+            </div>
+        </div>
+
+        <ul class="review-list">
+            <?php foreach ($reviews as $rv): ?>
+            <li class="review-item">
+                <div class="review-item-header">
+                    <span class="review-item-stars">
+                        <?= str_repeat('★', (int)$rv['rating']) ?><?= str_repeat('☆', 5 - (int)$rv['rating']) ?>
+                    </span>
+                    <span class="review-item-date"><?= h(date('Y年n月', strtotime($rv['updated_at']))) ?></span>
+                </div>
+                <?php if (!empty($rv['comment'])): ?>
+                <p class="review-item-comment"><?= h($rv['comment']) ?></p>
+                <?php endif; ?>
+            </li>
+            <?php endforeach; ?>
+        </ul>
+        <?php else: ?>
+        <p class="review-empty">まだクチコミはありません。</p>
+        <?php endif; ?>
+
+        <?php if ($is_user): ?>
+        <a href="review_post.php?agent_id=<?= $agent_id ?>" class="btn-review-post">
+            <?= $user_reviewed ? '★ クチコミを編集する' : '★ クチコミを投稿する' ?>
+        </a>
         <?php endif; ?>
 
     </div>

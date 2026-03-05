@@ -228,6 +228,20 @@ $type_labels = [
             transition: all 0.2s;
         }
         .btn-remove:hover { background: #dc3545; color: #fff; }
+        .btn-review {
+            padding: 8px 12px;
+            background: #fff;
+            color: #f4c430;
+            border: 1px solid #f4c430;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            display: block;
+            transition: all 0.2s;
+        }
+        .btn-review:hover { background: #f4c430; color: #fff; }
         .my-agent-badge {
             position: absolute;
             top: 10px;
@@ -385,6 +399,7 @@ $type_labels = [
                 </div>
                 <div class="agent-card-actions">
                     <a href="profile.php?id=<?= $a['id'] ?>" class="btn-profile">プロフィールを見る</a>
+                    <a href="review_post.php?agent_id=<?= $a['id'] ?>" class="btn-review">★ クチコミ</a>
                     <button class="btn-remove" onclick="removeMyAgent(<?= $a['id'] ?>, 'myagent-card-<?= $a['id'] ?>')">解除</button>
                 </div>
             </div>
