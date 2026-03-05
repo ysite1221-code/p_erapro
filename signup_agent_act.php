@@ -16,8 +16,8 @@ $email_token = bin2hex(random_bytes(32));
 
 // 4. データ登録SQL
 // verification_status = 0 (未提出) で登録
-$sql = "INSERT INTO agents(name, lid, lpw, email_token, verification_status, email_notification_flg, kanri_flg, life_flg) 
-        VALUES(:name, :lid, :lpw, :email_token, 0, 1, 0, 0)";
+$sql = "INSERT INTO agents(name, lid, lpw, email_token, verification_status, email_notification_flg, life_flg)
+        VALUES(:name, :lid, :lpw, :email_token, 0, 1, 0)";
 
 $stmt = $pdo->prepare($sql);
 $stmt->bindValue(':name', $name, PDO::PARAM_STR);

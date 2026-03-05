@@ -50,7 +50,7 @@
         <h2>パートナーアカウント作成</h2>
         <p class="sub-title">あなたの経験と想いを、求めている人へ。</p>
         
-        <form action="insert.php" method="post">
+        <form action="signup_agent_act.php" method="post">
             <div class="form-group">
                 <label>お名前 (活動名)</label>
                 <input type="text" name="name" required placeholder="例: 佐藤 健太">
