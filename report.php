@@ -154,131 +154,32 @@ function diff_html($diff) {
     <link rel="stylesheet" href="css/admin.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        /* KPIグリッド（mypage.php流用） */
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px;
-            margin-bottom: 32px;
-        }
-        .kpi-card {
-            background: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            text-align: center;
-            border-top: 4px solid #004e92;
-        }
-        .kpi-card.today   { border-top-color: #2e7d32; }
-        .kpi-card.fav     { border-top-color: #e91e63; }
-        .kpi-card.myagent { border-top-color: #f59e0b; }
-        .kpi-label { font-size: 0.82rem; color: #666; margin-bottom: 10px; }
-        .kpi-value { font-size: 2rem; font-weight: 800; color: #333; line-height: 1; }
-        .kpi-unit  { font-size: 0.9rem; color: #999; font-weight: normal; }
-
-        /* チャートカード */
-        .chart-card {
-            background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            padding: 24px;
-            margin-bottom: 24px;
-        }
-        .chart-card h3 {
-            font-size: 1rem;
-            font-weight: 700;
-            color: #333;
-            margin: 0 0 20px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        /* 比較カードグリッド */
-        .compare-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-        .compare-card {
-            background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            padding: 20px 24px;
-        }
-        .compare-card h4 {
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: #333;
-            margin: 0 0 14px;
-        }
-        .compare-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid #f0f0f0;
-            font-size: 0.88rem;
-        }
-        .compare-row:last-child { border-bottom: none; }
-        .compare-label { color: #666; }
-        .compare-value { font-weight: 700; font-size: 1.1rem; color: #333; }
-
-        /* メッセージ統計 */
-        .msg-stat-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-        .msg-stat-card {
-            background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            padding: 20px;
-            text-align: center;
-            border-top: 4px solid #004e92;
-        }
-        .msg-stat-card.unread-card { border-top-color: #e91e63; }
-    </style>
 </head>
 <body>
 
-    <div class="admin-header">
-        <div class="logo">ERAPRO Agent <span style="font-size:0.8rem; font-weight:normal;">Report</span></div>
-        <div style="display:flex; gap:15px; align-items:center;">
-            <span style="font-size:0.9rem;">こんにちは、<?= h($agent["name"]) ?> さん</span>
-            <a href="logout.php" style="color:#fff; text-decoration:underline; font-size:0.8rem;">ログアウト</a>
-        </div>
-    </div>
+    <?php include("header_agent.php"); ?>
 
     <div class="dashboard">
         <aside class="sidebar">
-            <div style="text-align:center; margin-bottom:20px;">
-                <img src="<?= h($img) ?>" style="width:80px; height:80px; object-fit:cover; border-radius:50%; border:2px solid #eee;">
-            </div>
+            <img src="<?= h($img) ?>" class="sidebar-avatar" alt="プロフィール">
             <ul>
-                <li><a href="mypage.php">
-                    <span class="material-icons-outlined" style="vertical-align:middle; font-size:1.2rem; margin-right:5px;">dashboard</span>ダッシュボード
+                <li><a href="mypage.php" class="sidebar-link">
+                    <span class="material-icons-outlined sidebar-icon">dashboard</span>ダッシュボード
                 </a></li>
-                <li><a href="edit.php">
-                    <span class="material-icons-outlined" style="vertical-align:middle; font-size:1.2rem; margin-right:5px;">person</span>プロフィール編集
+                <li><a href="edit.php" class="sidebar-link">
+                    <span class="material-icons-outlined sidebar-icon">person</span>プロフィール編集
                 </a></li>
-                <li><a href="messages_list.php">
-                    <span class="material-icons-outlined" style="vertical-align:middle; font-size:1.2rem; margin-right:5px;">chat</span>メッセージ
+                <li><a href="messages_list.php" class="sidebar-link">
+                    <span class="material-icons-outlined sidebar-icon">chat</span>メッセージ
                 </a></li>
-                <li><a href="customer_list.php">
-                    <span class="material-icons-outlined" style="vertical-align:middle; font-size:1.2rem; margin-right:5px;">people</span>顧客リスト
+                <li><a href="customer_list.php" class="sidebar-link">
+                    <span class="material-icons-outlined sidebar-icon">people</span>顧客リスト
                 </a></li>
-                <li><a href="report.php" class="active">
-                    <span class="material-icons-outlined" style="vertical-align:middle; font-size:1.2rem; margin-right:5px;">analytics</span>レポート
+                <li><a href="report.php" class="sidebar-link active">
+                    <span class="material-icons-outlined sidebar-icon">analytics</span>レポート
                 </a></li>
             </ul>
-            <div style="margin-top:30px; text-align:center;">
-                <a href="profile.php?id=<?= $id ?>" target="_blank" class="btn-edit" style="width:100%; box-sizing:border-box; background:#555;">自分の公開ページを見る</a>
-            </div>
+            <a href="profile.php?id=<?= $id ?>" target="_blank" class="sidebar-public-btn">自分の公開ページを見る</a>
         </aside>
 
         <main class="main-content">

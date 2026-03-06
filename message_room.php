@@ -244,6 +244,7 @@ function is_mine($msg, $user_type, $my_id) {
         /* エージェントレイアウト調整 */
         <?php if ($user_type === 'agent'): ?>
         .chat-wrap { max-width: 680px; margin: 0 auto; }
+        .chat-header { top: 60px; }
         <?php endif; ?>
 
         /* 日付区切り */
@@ -262,28 +263,28 @@ function is_mine($msg, $user_type, $my_id) {
     <div class="chat-wrap">
 
 <?php else: ?>
-    <div class="admin-header">
-        <div class="logo">ERAPRO Agent <span style="font-size:0.8rem; font-weight:normal;">Message</span></div>
-        <div style="display:flex; gap:15px; align-items:center;">
-            <a href="messages_list.php" style="color:#fff; font-size:0.85rem;">← メッセージ一覧</a>
-            <a href="logout.php" style="color:#fff; text-decoration:underline; font-size:0.8rem;">ログアウト</a>
-        </div>
-    </div>
+    <?php include("header_agent.php"); ?>
     <div class="dashboard">
         <aside class="sidebar">
             <ul>
-                <li><a href="mypage.php">
-                    <span class="material-icons-outlined" style="vertical-align:middle; font-size:1.2rem; margin-right:5px;">dashboard</span>ダッシュボード
+                <li><a href="mypage.php" class="sidebar-link">
+                    <span class="material-icons-outlined sidebar-icon">dashboard</span>ダッシュボード
                 </a></li>
-                <li><a href="edit.php">
-                    <span class="material-icons-outlined" style="vertical-align:middle; font-size:1.2rem; margin-right:5px;">person</span>プロフィール編集
+                <li><a href="edit.php" class="sidebar-link">
+                    <span class="material-icons-outlined sidebar-icon">person</span>プロフィール編集
                 </a></li>
-                <li><a href="messages_list.php" class="active">
-                    <span class="material-icons-outlined" style="vertical-align:middle; font-size:1.2rem; margin-right:5px;">chat</span>メッセージ
+                <li><a href="messages_list.php" class="sidebar-link active">
+                    <span class="material-icons-outlined sidebar-icon">chat</span>メッセージ
+                </a></li>
+                <li><a href="customer_list.php" class="sidebar-link">
+                    <span class="material-icons-outlined sidebar-icon">people</span>顧客リスト
+                </a></li>
+                <li><a href="report.php" class="sidebar-link">
+                    <span class="material-icons-outlined sidebar-icon">analytics</span>レポート
                 </a></li>
             </ul>
         </aside>
-        <main class="main-content" style="flex:1;">
+        <main class="main-content">
         <div class="chat-wrap">
 <?php endif; ?>
 
