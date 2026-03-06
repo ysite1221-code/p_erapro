@@ -62,89 +62,288 @@ if ($diag_filter_active && count($rows) === 0) {
     foreach ($params2 as $k => $v) $stmt2->bindValue($k, $v, PDO::PARAM_STR);
     $stmt2->execute();
     $rows = $stmt2->fetchAll(PDO::FETCH_ASSOC);
-    $diag_filter_active = false; // フォールバック
+    $diag_filter_active = false;
 }
 
-// 4. 表示作成
+// 4. カードHTML生成
 $view = "";
 if ($status == false) {
     sql_error($stmt);
 } else {
     foreach ($rows as $r) {
-        $img  = $r['profile_img'] ? 'uploads/'.$r['profile_img'] : 'https://placehold.co/400x200/e0e0e0/888?text=No+Image';
+        // 画像なしの場合は picsum.photos で一貫した写真を使用
+        $img = $r['profile_img']
+            ? 'uploads/' . $r['profile_img']
+            : 'https://picsum.photos/seed/agent' . $r['id'] . '/600/360';
 
-        $view .= '<a href="profile.php?id='.$r["id"].'" class="card">';
-        $view .= '<img src="'.$img.'" style="width:100%; height:150px; object-fit:cover;">';
-        $view .= '<div class="card-body">';
-        $view .= '<h3 style="margin:0 0 5px 0; color:#004e92;">'.h($r["name"]).'</h3>';
-        $view .= '<p style="font-weight:bold; font-size:0.9rem; margin-bottom:10px;">'.h($r["title"]).'</p>';
-        $view .= '<div style="margin-bottom:10px;">';
-
+        $tags_html = '';
         $tags = explode(",", $r["tags"] ?? '');
         foreach ($tags as $t) {
-            if (!empty(trim($t))) $view .= '<span class="tag">#'.h(trim($t)).'</span>';
+            if (!empty(trim($t))) {
+                $tags_html .= '<span class="tag">#' . h(trim($t)) . '</span>';
+            }
         }
 
+        $view .= '<a href="profile.php?id=' . $r["id"] . '" class="card">';
+        $view .= '<div class="card-img-wrap">';
+        $view .= '<img src="' . h($img) . '" class="card-img" alt="' . h($r["name"]) . '">';
+        $view .= '<span class="card-area-chip">📍 ' . h($r["area"] ?: '未設定') . '</span>';
         $view .= '</div>';
-        $view .= '<p style="font-size:0.85rem; color:#666;">'.h(mb_substr($r["story"] ?? '',0,50)).'...</p>';
+        $view .= '<div class="card-body">';
+        $view .= '<p class="card-catch">' . h(mb_substr($r["title"] ?? '', 0, 45)) . '</p>';
+        $view .= '<h3 class="card-name">' . h($r["name"]) . '</h3>';
+        if ($tags_html) {
+            $view .= '<div class="card-tags">' . $tags_html . '</div>';
+        }
+        $view .= '<p class="card-story">' . h(mb_substr($r["story"] ?? '', 0, 52)) . (mb_strlen($r["story"] ?? '') > 52 ? '…' : '') . '</p>';
         $view .= '</div>';
         $view .= '</a>';
     }
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>プロを探す - ERAPRO</title>
     <link rel="stylesheet" href="css/style.css">
     <style>
-        /* 検索フォーム用の追加CSS */
-        .search-box { background: #fff; padding: 20px; border-radius: 8px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; gap: 10px; flex-wrap: wrap; }
-        .search-input { padding: 10px; border: 1px solid #ddd; border-radius: 5px; flex: 1; }
-        .search-select { padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
-        .btn-submit { background: #004e92; color: #fff; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        body { background: #f5f5f5; }
+
+        /* ===== ページヘッダー ===== */
+        .page-header {
+            background: #fff;
+            border-bottom: 1px solid #ebebeb;
+            padding: 48px 28px 40px;
+        }
+        .page-header-inner {
+            max-width: 1040px;
+            margin: 0 auto;
+        }
+        .page-header h1 {
+            font-size: 2rem;
+            font-weight: 900;
+            color: #111;
+            margin: 0 0 6px;
+            letter-spacing: -0.02em;
+        }
+        .page-header p {
+            font-size: 0.9rem;
+            color: #999;
+            margin: 0;
+        }
+
+        /* ===== 検索フォーム ===== */
+        .search-wrap {
+            max-width: 1040px;
+            margin: 0 auto;
+            padding: 0 28px;
+        }
+        .search-box {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.07);
+            padding: 24px 28px;
+            margin: 32px 0 0;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .search-select,
+        .search-input {
+            padding: 12px 14px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            color: #333;
+            background: #fafafa;
+            transition: border-color 0.2s;
+        }
+        .search-select { min-width: 140px; }
+        .search-input { flex: 1; min-width: 180px; }
+        .search-select:focus,
+        .search-input:focus { outline: none; border-color: #004e92; background: #fff; }
+        .btn-submit {
+            background: #004e92;
+            color: #fff;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            letter-spacing: 0.03em;
+            transition: background 0.2s;
+        }
+        .btn-submit:hover { background: #003a70; }
+
+        /* ===== 診断バナー ===== */
+        .diag-banner {
+            border-radius: 8px;
+            padding: 20px 24px;
+            margin-top: 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: #fff;
+        }
+        .diag-banner-emoji { font-size: 2rem; line-height: 1; }
+        .diag-banner-label { font-size: 0.78rem; opacity: 0.8; margin-bottom: 2px; }
+        .diag-banner-title { font-size: 1.05rem; font-weight: 700; }
+        .diag-filter-badge {
+            font-size: 0.78rem;
+            background: rgba(255,255,255,0.2);
+            padding: 3px 12px;
+            border-radius: 4px;
+            margin-left: 12px;
+        }
+        .diag-retry-link {
+            margin-left: auto;
+            font-size: 0.82rem;
+            color: rgba(255,255,255,0.75);
+            white-space: nowrap;
+        }
+        .diag-retry-link:hover { color: #fff; }
+
+        /* ===== 件数表示 ===== */
+        .result-meta {
+            max-width: 1040px;
+            margin: 32px auto 0;
+            padding: 0 28px;
+            font-size: 0.85rem;
+            color: #999;
+            font-weight: 500;
+        }
+
+        /* ===== カードグリッド ===== */
+        .card-list-wrap {
+            max-width: 1040px;
+            margin: 16px auto 80px;
+            padding: 0 28px;
+        }
+
+        /* ===== カード ===== */
+        .card-img-wrap {
+            position: relative;
+            overflow: hidden;
+        }
+        .card-img {
+            width: 100%;
+            height: 210px;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.4s ease;
+        }
+        .card:hover .card-img { transform: scale(1.04); }
+        .card-area-chip {
+            position: absolute;
+            bottom: 10px;
+            left: 12px;
+            background: rgba(0,0,0,0.55);
+            color: #fff;
+            font-size: 0.72rem;
+            font-weight: 500;
+            padding: 3px 10px;
+            border-radius: 4px;
+            backdrop-filter: blur(4px);
+        }
+        .card-body { padding: 20px 20px 22px; }
+        .card-catch {
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: #111;
+            margin: 0 0 6px;
+            line-height: 1.5;
+        }
+        .card-name {
+            font-size: 0.82rem;
+            font-weight: 500;
+            color: #888;
+            margin: 0 0 12px;
+        }
+        .card-tags { margin-bottom: 12px; }
+        .card-story {
+            font-size: 0.83rem;
+            color: #999;
+            line-height: 1.7;
+            margin: 0;
+        }
+
+        /* ===== 空状態 ===== */
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 80px 20px;
+            color: #bbb;
+            font-size: 0.95rem;
+        }
     </style>
 </head>
 <body>
     <?php include("header.php"); ?>
 
-    <div class="container">
-        <h2>プロフェッショナルを探す</h2>
+    <!-- ページヘッダー -->
+    <div class="page-header">
+        <div class="page-header-inner">
+            <h1>プロフェッショナルを探す</h1>
+            <p>エリア・キーワードで、あなたに合う保険のプロを見つけましょう。</p>
+        </div>
+    </div>
 
+    <div class="search-wrap">
+        <!-- 診断バナー -->
         <?php if ($matched_type): ?>
-        <div style="background:<?= h($matched_type['color']) ?>; color:#fff; border-radius:10px; padding:16px 20px; margin-bottom:24px; display:flex; align-items:center; gap:14px;">
-            <span style="font-size:2rem;"><?= $matched_type['emoji'] ?></span>
+        <div class="diag-banner" style="background:<?= h($matched_type['color']) ?>;">
+            <span class="diag-banner-emoji"><?= $matched_type['emoji'] ?></span>
             <div>
-                <div style="font-size:0.8rem; opacity:0.8; margin-bottom:2px;">診断タイプ</div>
-                <strong style="font-size:1.1rem;"><?= h($matched_type['label']) ?></strong>
-                <?php if ($diag_filter_active): ?>
-                    <span style="font-size:0.8rem; margin-left:10px; background:rgba(255,255,255,0.2); padding:3px 10px; border-radius:12px;">相性の高いプロを表示中</span>
-                <?php endif; ?>
+                <div class="diag-banner-label">診断タイプ</div>
+                <div class="diag-banner-title">
+                    <?= h($matched_type['label']) ?>
+                    <?php if ($diag_filter_active): ?>
+                    <span class="diag-filter-badge">相性の高いプロを表示中</span>
+                    <?php endif; ?>
+                </div>
             </div>
-            <a href="diagnosis.php?retry=1" style="margin-left:auto; font-size:0.8rem; color:rgba(255,255,255,0.8); white-space:nowrap;">再診断する</a>
+            <a href="diagnosis.php?retry=1" class="diag-retry-link">再診断する →</a>
         </div>
         <?php endif; ?>
 
+        <!-- 検索フォーム -->
         <form action="search.php" method="get" class="search-box">
             <select name="area" class="search-select">
                 <option value="">エリアを選択</option>
-                <option value="東京都">東京都</option>
-                <option value="大阪府">大阪府</option>
-                <option value="福岡県">福岡県</option>
-                </select>
-            <input type="text" name="tag" class="search-input" placeholder="キーワード（例: 子育て, 相続）">
+                <option value="東京都" <?= $area === '東京都' ? 'selected' : '' ?>>東京都</option>
+                <option value="大阪府" <?= $area === '大阪府' ? 'selected' : '' ?>>大阪府</option>
+                <option value="福岡県" <?= $area === '福岡県' ? 'selected' : '' ?>>福岡県</option>
+            </select>
+            <input type="text" name="tag" class="search-input"
+                   placeholder="キーワード（例: 子育て, 相続）"
+                   value="<?= h($tag) ?>">
             <?php if (!empty($diag_type)): ?>
             <input type="hidden" name="type" value="<?= h($diag_type) ?>">
             <?php endif; ?>
             <input type="submit" value="検索" class="btn-submit">
         </form>
+    </div>
+
+    <!-- 件数 -->
+    <div class="result-meta">
+        <?= count($rows) ?> 件のプロフェッショナル
+    </div>
+
+    <!-- カードグリッド -->
+    <div class="card-list-wrap">
         <div class="card-list">
-            <?php if($view !== ""): ?>
+            <?php if (!empty($rows)): ?>
                 <?= $view ?>
             <?php else: ?>
-                <p>条件に一致するプロフェッショナルは見つかりませんでした。</p>
+                <div class="empty-state">
+                    条件に一致するプロフェッショナルは見つかりませんでした。
+                </div>
             <?php endif; ?>
         </div>
     </div>

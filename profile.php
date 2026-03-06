@@ -119,7 +119,7 @@ $review_posted = isset($_GET['review']) && $_GET['review'] === '1';
 // 画像処理
 $img = $row['profile_img']
     ? 'uploads/' . $row['profile_img']
-    : 'https://placehold.co/800x300/e0e0e0/888?text=No+Image';
+    : 'https://picsum.photos/seed/agent' . $agent_id . '/1200/480';
 
 // タグ処理
 $tags = array_filter(array_map('trim', explode(',', $row['tags'] ?? '')));
@@ -133,94 +133,134 @@ $tags = array_filter(array_map('trim', explode(',', $row['tags'] ?? '')));
     <link rel="stylesheet" href="css/style.css">
     <style>
         /* ===== プロフィールページ固有スタイル ===== */
-        .profile-wrap { max-width: 760px; margin: 0 auto; padding-bottom: 80px; }
+        .profile-wrap { max-width: 800px; margin: 0 auto; padding-bottom: 100px; }
 
         /* カバー画像 */
-        .cover-img { width: 100%; height: 280px; object-fit: cover; }
+        .cover-img {
+            width: 100%;
+            height: 340px;
+            object-fit: cover;
+            display: block;
+        }
 
         /* カード本体 */
         .profile-card {
             background: #fff;
-            margin: -48px 20px 0;
-            border-radius: 14px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
-            padding: 36px 40px 40px;
+            margin: -56px 24px 0;
+            border-radius: 8px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.09);
+            padding: 40px 48px 48px;
             position: relative;
         }
 
         /* ヘッダー情報 */
-        .profile-head { display: flex; gap: 20px; align-items: flex-start; margin-bottom: 24px; }
+        .profile-head { display: flex; gap: 24px; align-items: flex-start; margin-bottom: 28px; }
         .profile-avatar {
-            width: 80px;
-            height: 80px;
+            width: 96px;
+            height: 96px;
             border-radius: 50%;
             object-fit: cover;
-            border: 3px solid #fff;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            border: 4px solid #fff;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.14);
             flex-shrink: 0;
-            margin-top: -60px;
+            margin-top: -72px;
             background: #eee;
         }
-        .profile-head-info { flex: 1; }
+        .profile-head-info { flex: 1; padding-top: 4px; }
         .area-chip {
             display: inline-block;
-            background: #e8f0fe;
+            background: #f0f4ff;
             color: #004e92;
-            font-size: 0.78rem;
+            font-size: 0.75rem;
+            font-weight: 500;
             padding: 3px 12px;
-            border-radius: 14px;
-            margin-bottom: 8px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            letter-spacing: 0.02em;
         }
-        .profile-name { font-size: 1.6rem; font-weight: 800; color: #222; margin-bottom: 4px; }
-        .profile-catch { font-size: 1rem; color: #004e92; font-weight: 600; }
+        .profile-name {
+            font-size: 1.9rem;
+            font-weight: 900;
+            color: #111;
+            margin-bottom: 6px;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+        }
+        .profile-catch {
+            font-size: 1rem;
+            color: #004e92;
+            font-weight: 700;
+            line-height: 1.6;
+        }
 
         /* タグ */
-        .tag-area { margin: 16px 0 24px; }
-        .tag { font-size: 0.78rem; background: #f0f4ff; color: #004e92; padding: 4px 10px; border-radius: 12px; margin-right: 6px; margin-bottom: 6px; display: inline-block; }
+        .tag-area { margin: 20px 0 32px; }
+        .tag {
+            font-size: 0.75rem;
+            background: #f0f4ff;
+            color: #004e92;
+            padding: 4px 12px;
+            border-radius: 4px;
+            margin-right: 6px;
+            margin-bottom: 6px;
+            display: inline-block;
+            font-weight: 500;
+        }
 
         /* セクション */
         .sec-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: #004e92;
-            border-left: 4px solid #004e92;
-            padding-left: 12px;
-            margin: 32px 0 14px;
+            font-size: 1.25rem;
+            font-weight: 900;
+            color: #111;
+            margin: 48px 0 16px;
+            letter-spacing: -0.01em;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #f0f0f0;
         }
-        .narrative-text { font-size: 1rem; line-height: 2; color: #444; white-space: pre-wrap; }
+        .narrative-text {
+            font-size: 1rem;
+            line-height: 2.2;
+            color: #444;
+            white-space: pre-wrap;
+        }
 
         /* アクションボタンエリア */
         .action-area {
             display: flex;
             gap: 12px;
-            margin-top: 40px;
+            margin-top: 48px;
             flex-wrap: wrap;
         }
         .btn-consult {
             flex: 2;
-            padding: 16px;
+            padding: 16px 20px;
             background: #004e92;
             color: #fff;
             border: none;
-            border-radius: 10px;
-            font-size: 1rem;
-            font-weight: bold;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 700;
             cursor: pointer;
             text-align: center;
             text-decoration: none;
             display: block;
-            transition: background 0.2s;
+            transition: background 0.2s, box-shadow 0.2s;
             min-width: 160px;
+            letter-spacing: 0.03em;
         }
-        .btn-consult:hover { background: #003a70; color: #fff; }
+        .btn-consult:hover {
+            background: #003a70;
+            color: #fff;
+            box-shadow: 0 4px 16px rgba(0,78,146,0.25);
+        }
 
         /* お気に入りボタン */
         .btn-fav {
             flex: 1;
             padding: 16px 14px;
-            border-radius: 10px;
-            font-size: 0.9rem;
-            font-weight: bold;
+            border-radius: 6px;
+            font-size: 0.88rem;
+            font-weight: 700;
             cursor: pointer;
             text-align: center;
             border: 2px solid;
@@ -228,29 +268,17 @@ $tags = array_filter(array_map('trim', explode(',', $row['tags'] ?? '')));
             background: #fff;
             min-width: 110px;
         }
-        .btn-fav-heart {
-            border-color: #e91e63;
-            color: #e91e63;
-        }
-        .btn-fav-heart.active {
-            background: #e91e63;
-            color: #fff;
-        }
-        .btn-fav-star {
-            border-color: #004e92;
-            color: #004e92;
-        }
-        .btn-fav-star.active {
-            background: #004e92;
-            color: #fff;
-        }
+        .btn-fav-heart { border-color: #e91e63; color: #e91e63; }
+        .btn-fav-heart.active { background: #e91e63; color: #fff; }
+        .btn-fav-star { border-color: #004e92; color: #004e92; }
+        .btn-fav-star.active { background: #004e92; color: #fff; }
 
         /* ログイン促進 */
         .login-hint {
             font-size: 0.8rem;
-            color: #999;
+            color: #aaa;
             text-align: center;
-            margin-top: 10px;
+            margin-top: 12px;
         }
         .login-hint a { color: #004e92; }
 
@@ -258,24 +286,25 @@ $tags = array_filter(array_map('trim', explode(',', $row['tags'] ?? '')));
         .review-summary {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 20px;
             background: #f8f9ff;
-            border-radius: 10px;
-            padding: 16px 20px;
-            margin: 8px 0 20px;
+            border-radius: 8px;
+            padding: 20px 24px;
+            margin: 12px 0 24px;
         }
         .review-score {
-            font-size: 2.4rem;
-            font-weight: 800;
+            font-size: 2.8rem;
+            font-weight: 900;
             color: #004e92;
             line-height: 1;
+            letter-spacing: -0.03em;
         }
-        .review-stars-avg { font-size: 1.4rem; color: #f4c430; letter-spacing: 2px; }
-        .review-count { font-size: 0.85rem; color: #888; margin-top: 2px; }
+        .review-stars-avg { font-size: 1.3rem; color: #f4c430; letter-spacing: 3px; }
+        .review-count { font-size: 0.82rem; color: #999; margin-top: 4px; }
         .review-list { list-style: none; padding: 0; margin: 0; }
         .review-item {
             border-top: 1px solid #f0f0f0;
-            padding: 16px 0;
+            padding: 20px 0;
         }
         .review-item:first-child { border-top: none; }
         .review-item-header {
@@ -285,13 +314,13 @@ $tags = array_filter(array_map('trim', explode(',', $row['tags'] ?? '')));
             margin-bottom: 8px;
         }
         .review-item-stars { font-size: 1rem; color: #f4c430; }
-        .review-item-date { font-size: 0.78rem; color: #bbb; }
-        .review-item-comment { font-size: 0.92rem; color: #444; line-height: 1.7; }
-        .review-empty { color: #aaa; font-size: 0.9rem; padding: 12px 0; }
+        .review-item-date { font-size: 0.78rem; color: #ccc; }
+        .review-item-comment { font-size: 0.92rem; color: #555; line-height: 1.8; }
+        .review-empty { color: #bbb; font-size: 0.9rem; padding: 16px 0; }
         .btn-review-post {
             display: inline-block;
-            margin-top: 20px;
-            padding: 12px 24px;
+            margin-top: 24px;
+            padding: 12px 28px;
             background: #004e92;
             color: #fff;
             border-radius: 8px;
@@ -301,21 +330,32 @@ $tags = array_filter(array_map('trim', explode(',', $row['tags'] ?? '')));
         }
         .btn-review-post:hover { background: #003a70; color: #fff; }
 
+        /* 戻るリンク */
+        .back-link {
+            display: inline-block;
+            padding: 20px 0 16px 4px;
+            font-size: 0.85rem;
+            color: #999;
+        }
+        .back-link:hover { color: #004e92; }
+
         /* トースト */
         #toast {
             position: fixed;
-            bottom: 30px;
+            bottom: 32px;
             left: 50%;
-            transform: translateX(-50%) translateY(20px);
-            background: #333;
+            transform: translateX(-50%) translateY(16px);
+            background: #111;
             color: #fff;
-            padding: 12px 24px;
-            border-radius: 30px;
-            font-size: 0.9rem;
+            padding: 12px 28px;
+            border-radius: 6px;
+            font-size: 0.875rem;
             opacity: 0;
-            transition: opacity 0.3s, transform 0.3s;
+            transition: opacity 0.25s, transform 0.25s;
             z-index: 1000;
             pointer-events: none;
+            font-weight: 500;
+            letter-spacing: 0.02em;
         }
         #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     </style>
@@ -327,8 +367,8 @@ $tags = array_filter(array_map('trim', explode(',', $row['tags'] ?? '')));
 <div class="profile-wrap">
 
     <!-- 戻るリンク -->
-    <div style="padding: 14px 24px;">
-        <a href="search.php" style="font-size:0.875rem; color:#666;">← プロ一覧に戻る</a>
+    <div style="padding: 0 28px;">
+        <a href="search.php" class="back-link">← プロ一覧に戻る</a>
     </div>
 
     <!-- カバー画像 -->
