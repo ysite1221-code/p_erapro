@@ -39,95 +39,106 @@ $pending_agents = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <meta charset="UTF-8">
     <title>ERAPRO 管理画面</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: sans-serif; background-color: #f4f6f9; margin: 0; display: flex; }
-        
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: 'Noto Sans JP', sans-serif; background: #f4f6f9; margin: 0; display: flex; min-height: 100vh; font-size: 14px; color: #333; }
+
         /* サイドバー */
-        .sidebar {
-            width: 250px;
-            background-color: #343a40;
-            color: #fff;
-            min-height: 100vh;
-            padding: 20px 0;
-        }
-        .sidebar h2 { text-align: center; font-size: 1.2rem; margin-bottom: 30px; letter-spacing: 1px; }
+        .sidebar { width: 240px; background: #1e2330; color: #fff; min-height: 100vh; flex-shrink: 0; }
+        .sidebar-brand { padding: 22px 24px; font-size: 0.95rem; font-weight: 900; letter-spacing: 0.08em; border-bottom: 1px solid rgba(255,255,255,0.07); }
+        .sidebar-brand span { font-size: 0.65rem; font-weight: 400; color: #888; display: block; margin-top: 2px; }
         .menu a {
-            display: block;
-            color: #c2c7d0;
-            padding: 15px 20px;
-            text-decoration: none;
-            border-bottom: 1px solid #4b545c;
-            transition: 0.3s;
+            display: flex; align-items: center; gap: 10px;
+            color: #9aa0b0; padding: 14px 24px;
+            font-size: 0.875rem; font-weight: 500;
+            border-left: 3px solid transparent;
+            transition: background 0.15s, color 0.15s;
         }
-        .menu a:hover, .menu a.active { background-color: #007bff; color: #fff; }
-        .menu .icon { margin-right: 10px; vertical-align: bottom; }
+        .menu a:hover { background: rgba(255,255,255,0.05); color: #fff; }
+        .menu a.active { background: rgba(0,123,255,0.15); color: #4da6ff; border-left-color: #007bff; font-weight: 700; }
+        .menu .icon { font-size: 1.1rem; }
 
         /* メインコンテンツ */
-        .content { flex: 1; padding: 30px; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-        .btn-logout { background: #dc3545; color: #fff; padding: 8px 15px; text-decoration: none; border-radius: 4px; font-size: 0.9rem; }
+        .content { flex: 1; padding: 36px 40px 80px; min-width: 0; }
+        .header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 32px; }
+        .header h2 { font-size: 1.6rem; font-weight: 900; color: #111; margin: 0; letter-spacing: -0.02em; }
+        .btn-logout { background: #dc3545; color: #fff; padding: 9px 20px; border-radius: 6px; font-size: 0.82rem; font-weight: 700; transition: background 0.2s; }
+        .btn-logout:hover { background: #b02a37; color: #fff; }
 
         /* KPIカード */
-        .kpi-container { display: flex; gap: 20px; margin-bottom: 40px; }
+        .kpi-container { display: flex; gap: 20px; margin-bottom: 36px; }
         .card {
-            flex: 1;
-            background: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            flex: 1; background: #fff; padding: 24px 20px; border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            display: flex; justify-content: space-between; align-items: center;
         }
-        .card h3 { margin: 0; font-size: 0.9rem; color: #666; }
-        .card .value { font-size: 2rem; font-weight: bold; margin-top: 5px; }
-        .card.alert { border-left: 5px solid #ffc107; } /* 注意色 */
-        
+        .card h3 { margin: 0 0 8px; font-size: 0.78rem; color: #999; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+        .card .value { font-size: 2.4rem; font-weight: 900; color: #111; line-height: 1; letter-spacing: -0.04em; }
+        .card.alert { border-left: 4px solid #ffc107; }
+        .card.alert .value { color: #d39e00; }
+
         /* テーブル */
-        .table-container { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; }
-        th { background-color: #f8f9fa; color: #555; font-size: 0.9rem; }
+        .table-container {
+            background: #fff; border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden;
+        }
+        .table-container > h3 { padding: 18px 24px; margin: 0; font-size: 1rem; font-weight: 700; border-bottom: 1px solid #f0f0f0; }
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            background: #fff; color: #888; font-size: 0.73rem; font-weight: 700;
+            padding: 12px 20px; text-align: left;
+            letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid #f0f0f0;
+        }
+        td { padding: 14px 20px; font-size: 0.875rem; border-bottom: 1px solid #f5f5f5; color: #333; vertical-align: middle; }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover td { background: #fafbff; }
         .btn-check {
-            background-color: #007bff; color: #fff; padding: 6px 12px;
-            text-decoration: none; border-radius: 4px; font-size: 0.8rem;
+            background: #007bff; color: #fff; padding: 6px 14px;
+            border-radius: 5px; font-size: 0.78rem; font-weight: 700;
+            transition: background 0.2s;
         }
+        .btn-check:hover { background: #0062cc; color: #fff; }
         .status-badge {
-            background: #ffc107; color: #333; padding: 4px 8px;
-            border-radius: 12px; font-size: 0.75rem; font-weight: bold;
+            background: #fff8e1; color: #d39e00; padding: 3px 10px;
+            border-radius: 4px; font-size: 0.72rem; font-weight: 700;
+            border: 1px solid #fde68a;
         }
+
+        /* フラッシュメッセージ */
+        .flash { padding: 14px 20px; border-radius: 6px; margin-bottom: 24px; font-size: 0.9rem; font-weight: 500; }
+        .flash-success { background: #f0faf2; border-left: 4px solid #2e7d32; color: #2e7d32; }
+        .flash-danger  { background: #fff0f0; border-left: 4px solid #c62828; color: #c62828; }
     </style>
 </head>
 <body>
 
     <div class="sidebar">
-        <h2>ERAPRO ADMIN</h2>
+        <div class="sidebar-brand">
+            ERAPRO ADMIN
+            <span>管理パネル</span>
+        </div>
         <div class="menu">
             <a href="admin_dashboard.php" class="active"><span class="material-icons-outlined icon">dashboard</span>ダッシュボード</a>
-            <a href="#"><span class="material-icons-outlined icon">people</span>Agent一覧</a>
-            <a href="#"><span class="material-icons-outlined icon">face</span>User一覧</a>
-            <a href="#"><span class="material-icons-outlined icon">settings</span>設定</a>
+            <a href="admin_agent_list.php"><span class="material-icons-outlined icon">people</span>Agent一覧</a>
+            <a href="admin_user_list.php"><span class="material-icons-outlined icon">face</span>User一覧</a>
         </div>
     </div>
 
     <div class="content">
         <div class="header">
             <h2>ダッシュボード</h2>
-            <div style="text-align:right;">
-                <span style="margin-right:15px; font-size:0.9rem;">管理者: <?= h($_SESSION["name"]) ?></span>
+            <div style="display:flex; align-items:center; gap:16px;">
+                <span style="font-size:0.82rem; color:#aaa;">管理者: <?= h($_SESSION["name"]) ?></span>
                 <a href="logout.php" class="btn-logout">ログアウト</a>
             </div>
         </div>
 
         <?php if (isset($_GET['result'])): ?>
             <?php if ($_GET['result'] === 'approved'): ?>
-                <div style="background:#d4edda; border-left:4px solid #28a745; padding:12px 16px; border-radius:4px; margin-bottom:20px; color:#155724;">
-                    ✅ Agentを承認しました。メールで通知しました。
-                </div>
+                <div class="flash flash-success">✅ Agentを承認しました。メールで通知しました。</div>
             <?php elseif ($_GET['result'] === 'rejected'): ?>
-                <div style="background:#f8d7da; border-left:4px solid #dc3545; padding:12px 16px; border-radius:4px; margin-bottom:20px; color:#721c24;">
-                    ⚠️ 否認しました。Agentへ再提出依頼メールを送信しました。
-                </div>
+                <div class="flash flash-danger">⚠️ 否認しました。Agentへ再提出依頼メールを送信しました。</div>
             <?php endif; ?>
         <?php endif; ?>
 
