@@ -33,6 +33,13 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS reviews (
     INDEX idx_agent (agent_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+// テーブルスキーマの自動アップデート
+try {
+    $pdo->exec("ALTER TABLE reviews ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at");
+} catch (PDOException $e) {
+    // カラムが既に存在する場合のエラーは無視する
+}
+
 $stmt = $pdo->prepare(
     "SELECT rating, comment FROM reviews WHERE user_id=:uid AND agent_id=:aid"
 );
