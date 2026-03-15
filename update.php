@@ -8,9 +8,10 @@ $name       = $_POST["name"];
 $title      = $_POST["title"];
 $story      = $_POST["story"];
 $philosophy = $_POST["philosophy"];
-$area       = $_POST["area"];
-$tags       = $_POST["tags"];
-$id         = $_SESSION["id"];
+$area        = $_POST["area"];
+$area_detail = $_POST["area_detail"] ?? '';
+$tags        = $_POST["tags"];
+$id          = $_SESSION["id"];
 
 // 営業スタイルスコア（0〜100）とタイプ分類
 $diag_score = max(0, min(100, (int)($_POST['diagnosis_score'] ?? 50)));
@@ -52,13 +53,18 @@ if (isset($_FILES["upfile"]) && $_FILES["upfile"]["error"] == 0) {
 // 3. DB更新SQL作成
 $pdo = db_conn();
 
+// area_detailカラムを自動追加
+try {
+    $pdo->exec("ALTER TABLE agents ADD COLUMN area_detail VARCHAR(255) DEFAULT NULL");
+} catch (PDOException $e) {}
+
 // 画像がアップロードされた場合と、されていない場合でSQLを分ける
 if($img_name != "") {
     // 画像あり更新
-    $sql = "UPDATE agents SET name=:name, title=:title, story=:story, philosophy=:philosophy, area=:area, tags=:tags, profile_img=:img, diagnosis_score=:dscore, diagnosis_type=:dtype WHERE id=:id";
+    $sql = "UPDATE agents SET name=:name, title=:title, story=:story, philosophy=:philosophy, area=:area, area_detail=:adetail, tags=:tags, profile_img=:img, diagnosis_score=:dscore, diagnosis_type=:dtype WHERE id=:id";
 } else {
     // 画像なし更新（profile_imgは更新しない）
-    $sql = "UPDATE agents SET name=:name, title=:title, story=:story, philosophy=:philosophy, area=:area, tags=:tags, diagnosis_score=:dscore, diagnosis_type=:dtype WHERE id=:id";
+    $sql = "UPDATE agents SET name=:name, title=:title, story=:story, philosophy=:philosophy, area=:area, area_detail=:adetail, tags=:tags, diagnosis_score=:dscore, diagnosis_type=:dtype WHERE id=:id";
 }
 
 $stmt = $pdo->prepare($sql);
@@ -66,8 +72,9 @@ $stmt->bindValue(':name',       $name,       PDO::PARAM_STR);
 $stmt->bindValue(':title',      $title,      PDO::PARAM_STR);
 $stmt->bindValue(':story',      $story,      PDO::PARAM_STR);
 $stmt->bindValue(':philosophy', $philosophy, PDO::PARAM_STR);
-$stmt->bindValue(':area',       $area,       PDO::PARAM_STR);
-$stmt->bindValue(':tags',       $tags,       PDO::PARAM_STR);
+$stmt->bindValue(':area',       $area,        PDO::PARAM_STR);
+$stmt->bindValue(':adetail',    $area_detail, PDO::PARAM_STR);
+$stmt->bindValue(':tags',       $tags,        PDO::PARAM_STR);
 $stmt->bindValue(':dscore',     $diag_score, PDO::PARAM_INT);
 $stmt->bindValue(':dtype',      $diag_type,  PDO::PARAM_STR);
 $stmt->bindValue(':id',         $id,         PDO::PARAM_INT);

@@ -5,10 +5,25 @@ loginCheck('agent');
 
 $id = (int)$_SESSION["id"];
 $pdo = db_conn();
+
+// area_detailカラムを自動追加
+try {
+    $pdo->exec("ALTER TABLE agents ADD COLUMN area_detail VARCHAR(255) DEFAULT NULL");
+} catch (PDOException $e) {}
+
 $stmt = $pdo->prepare("SELECT * FROM agents WHERE id=:id");
 $stmt->bindValue(':id', $id, PDO::PARAM_INT);
 $stmt->execute();
 $row = $stmt->fetch();
+
+$prefectures = ['北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県',
+    '茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県',
+    '新潟県','富山県','石川県','福井県','山梨県','長野県',
+    '岐阜県','静岡県','愛知県','三重県',
+    '滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県',
+    '鳥取県','島根県','岡山県','広島県','山口県',
+    '徳島県','香川県','愛媛県','高知県',
+    '福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県'];
 ?>
 <!DOCTYPE html>
 <html lang="ja">
@@ -46,12 +61,21 @@ $row = $stmt->fetch();
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">活動エリア</label>
+                    <label class="form-label">活動エリア（都道府県）</label>
                     <select name="area" class="form-control">
-                        <option value="東京都" <?= $row["area"] === '東京都' ? 'selected' : '' ?>>東京都</option>
-                        <option value="大阪府" <?= $row["area"] === '大阪府' ? 'selected' : '' ?>>大阪府</option>
-                        <option value="福岡県" <?= $row["area"] === '福岡県' ? 'selected' : '' ?>>福岡県</option>
+                        <option value="">-- 選択してください --</option>
+                        <?php foreach ($prefectures as $p): ?>
+                        <option value="<?= h($p) ?>" <?= ($row["area"] ?? '') === $p ? 'selected' : '' ?>><?= h($p) ?></option>
+                        <?php endforeach; ?>
                     </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">主な活動市区町村</label>
+                    <input type="text" name="area_detail" class="form-control"
+                           value="<?= h($row["area_detail"] ?? '') ?>"
+                           placeholder="例: 世田谷区, 渋谷区, 横浜市全域">
+                    <p style="font-size:0.78rem; color:#aaa; margin-top:6px;">カンマ区切りで複数入力可。ユーザーのキーワード検索にも使われます。</p>
                 </div>
 
                 <div class="form-group">

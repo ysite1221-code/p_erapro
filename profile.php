@@ -387,7 +387,13 @@ $tags = array_filter(array_map('trim', explode(',', $row['tags'] ?? '')));
         <div class="profile-head">
             <img src="<?= h($img) ?>" class="profile-avatar" alt="<?= h($row['name']) ?>">
             <div class="profile-head-info">
-                <span class="area-chip">📍 <?= h($row['area'] ?: '未設定') ?></span>
+                <?php
+                    $area_display = $row['area'] ?: '未設定';
+                    if (!empty($row['area_detail'])) {
+                        $area_display .= '　' . mb_substr($row['area_detail'], 0, 25);
+                    }
+                ?>
+                <span class="area-chip">📍 <?= h($area_display) ?></span>
                 <div class="profile-name"><?= h($row['name']) ?></div>
                 <div class="profile-catch"><?= h($row['title']) ?></div>
             </div>

@@ -7,9 +7,15 @@ $user_id   = (int)$_SESSION['id'];
 $user_name = $_SESSION['name'];
 $pdo       = db_conn();
 
-// usersテーブルにinterestsカラムを自動追加
+// スキーマ自動更新
 try {
     $pdo->exec("ALTER TABLE users ADD COLUMN interests VARCHAR(255) DEFAULT NULL");
+} catch (PDOException $e) {}
+try {
+    $pdo->exec("ALTER TABLE users ADD COLUMN area VARCHAR(50) DEFAULT NULL");
+} catch (PDOException $e) {}
+try {
+    $pdo->exec("ALTER TABLE agents ADD COLUMN area_detail VARCHAR(255) DEFAULT NULL");
 } catch (PDOException $e) {}
 
 // favoritesテーブルをなければ作成
@@ -56,8 +62,8 @@ $stmt->bindValue(':uid', $user_id, PDO::PARAM_INT);
 $stmt->execute();
 $unread_msg_count = (int)$stmt->fetchColumn();
 
-// 診断タイプ・スコア・関心事：DBを正として取得し、セッションに同期
-$stmt_diag = $pdo->prepare("SELECT diagnosis_type, diagnosis_score, interests FROM users WHERE id=:uid AND life_flg=0");
+// 診断タイプ・スコア・関心事・エリア：DBを正として取得し、セッションに同期
+$stmt_diag = $pdo->prepare("SELECT diagnosis_type, diagnosis_score, interests, area FROM users WHERE id=:uid AND life_flg=0");
 $stmt_diag->bindValue(':uid', $user_id, PDO::PARAM_INT);
 $stmt_diag->execute();
 $diag_row = $stmt_diag->fetch(PDO::FETCH_ASSOC);
@@ -78,6 +84,31 @@ $interests_str  = ($diag_row && !empty($diag_row['interests'])) ? $diag_row['int
 $user_interests = (!empty($interests_str))
     ? array_values(array_filter(array_map('trim', explode(',', $interests_str))))
     : [];
+
+// ユーザーエリア
+$user_area = ($diag_row && !empty($diag_row['area'])) ? $diag_row['area'] : null;
+
+// 近隣Agent取得（ユーザーのareaと一致するAgent、スコア相性順）
+$nearby_agents = [];
+if (!empty($user_area)) {
+    $near_sql = "SELECT a.id, a.name, a.title, a.area, a.area_detail, a.tags, a.profile_img, a.diagnosis_score
+                 FROM agents a
+                 WHERE a.life_flg = 0 AND a.area = :uarea";
+    if ($user_score !== null) {
+        $near_sql .= " ORDER BY ABS(COALESCE(a.diagnosis_score, 50) - :near_score) ASC, a.id DESC";
+    } else {
+        $near_sql .= " ORDER BY a.id DESC";
+    }
+    $near_sql .= " LIMIT 6";
+
+    $near_stmt = $pdo->prepare($near_sql);
+    $near_stmt->bindValue(':uarea', $user_area, PDO::PARAM_STR);
+    if ($user_score !== null) {
+        $near_stmt->bindValue(':near_score', $user_score, PDO::PARAM_INT);
+    }
+    $near_stmt->execute();
+    $nearby_agents = $near_stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 
 $type_labels = [
     'logic_seeker'   => ['論理・データ重視タイプ', '📊'],
@@ -425,6 +456,46 @@ if (!empty($user_interests)) {
             margin-bottom: 6px;
         }
 
+        /* ===== 近隣セクション ===== */
+        .nearby-section { margin-bottom: 28px; }
+        .nearby-header {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .nearby-header h3 { font-size: 1rem; font-weight: 700; color: #111; margin: 0; }
+        .nearby-header p  { font-size: 0.8rem; color: #999; margin: 0; }
+        .nearby-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 14px;
+        }
+        .nearby-card {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            overflow: hidden;
+            text-decoration: none;
+            color: inherit;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: block;
+        }
+        .nearby-card:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,0.1); }
+        .nearby-card-img { width: 100%; height: 100px; object-fit: cover; display: block; }
+        .nearby-card-body { padding: 11px 14px 13px; }
+        .nearby-card-area {
+            font-size: 0.72rem;
+            color: #004e92;
+            background: #f0f4ff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 6px;
+        }
+        .nearby-card-catch { font-size: 0.8rem; font-weight: 700; color: #111; margin: 0 0 3px; line-height: 1.4; }
+        .nearby-card-name  { font-size: 0.76rem; color: #888; margin: 0; }
+
         /* ===== 空状態 ===== */
         .empty-state {
             text-align: center;
@@ -572,6 +643,46 @@ if (!empty($user_interests)) {
                     <span>もっと見る</span>
                 </div>
             </a>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <!-- 近隣のおすすめプロ -->
+    <?php if (!empty($nearby_agents)): ?>
+    <div class="nearby-section">
+        <div class="nearby-header">
+            <h3>📍 近隣のおすすめプロ（<?= h($user_area) ?>）</h3>
+            <p>あなたのエリアで活動しているプロフェッショナル</p>
+        </div>
+        <div class="nearby-grid">
+            <?php foreach ($nearby_agents as $na): ?>
+            <?php
+                $na_img = $na['profile_img']
+                    ? 'uploads/' . $na['profile_img']
+                    : 'https://picsum.photos/seed/agent' . $na['id'] . '/400/200';
+                // エリア表示
+                $na_area = $na['area'] ?? '';
+                if (!empty($na['area_detail'])) {
+                    $na_parts = array_map('trim', explode(',', $na['area_detail']));
+                    if (!empty($na_parts[0])) { $na_area .= ' ' . $na_parts[0]; }
+                }
+                // 相性バッジ
+                $na_compat = '';
+                if ($user_score !== null && isset($na['diagnosis_score']) && $na['diagnosis_score'] !== null) {
+                    $c = 100 - abs($user_score - (int)$na['diagnosis_score']);
+                    $na_compat = '<span class="compat-badge" style="display:inline-block;font-size:0.7rem;margin-bottom:5px;">✨ 相性 ' . $c . '%</span><br>';
+                }
+            ?>
+            <a href="profile.php?id=<?= $na['id'] ?>" class="nearby-card">
+                <img src="<?= h($na_img) ?>" class="nearby-card-img" alt="<?= h($na['name']) ?>">
+                <div class="nearby-card-body">
+                    <?= $na_compat ?>
+                    <span class="nearby-card-area">📍 <?= h($na_area) ?></span>
+                    <p class="nearby-card-catch"><?= h(mb_substr($na['title'] ?? '', 0, 28)) ?><?= mb_strlen($na['title'] ?? '') > 28 ? '…' : '' ?></p>
+                    <p class="nearby-card-name"><?= h($na['name']) ?></p>
+                </div>
+            </a>
+            <?php endforeach; ?>
         </div>
     </div>
     <?php endif; ?>

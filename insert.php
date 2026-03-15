@@ -24,9 +24,15 @@ $name      = $_POST["name"];
 $lid       = $_POST["lid"];
 $lpw       = $_POST["lpw"];
 $user_type = $_POST["user_type"]; // agent or user
+$area      = $_POST["area"] ?? '';
 
 // 2. DB接続
 $pdo = db_conn();
+
+// usersテーブルにareaカラムを自動追加
+try {
+    $pdo->exec("ALTER TABLE users ADD COLUMN area VARCHAR(50) DEFAULT NULL");
+} catch (PDOException $e) {}
 
 // 3. パスワードハッシュ化 & メール認証トークン生成
 $lpw_hash    = password_hash($lpw, PASSWORD_DEFAULT);
@@ -37,8 +43,8 @@ if ($user_type === 'agent') {
     $sql = "INSERT INTO agents(name, lid, lpw, email_token, indate, life_flg, plan_type)
             VALUES(:name, :lid, :lpw, :email_token, sysdate(), 0, 0)";
 } else {
-    $sql = "INSERT INTO users(name, lid, lpw, email_token, indate, life_flg)
-            VALUES(:name, :lid, :lpw, :email_token, sysdate(), 0)";
+    $sql = "INSERT INTO users(name, lid, lpw, email_token, area, indate, life_flg)
+            VALUES(:name, :lid, :lpw, :email_token, :area, sysdate(), 0)";
 }
 
 $stmt = $pdo->prepare($sql);
@@ -46,6 +52,9 @@ $stmt->bindValue(':name',        $name,        PDO::PARAM_STR);
 $stmt->bindValue(':lid',         $lid,         PDO::PARAM_STR);
 $stmt->bindValue(':lpw',         $lpw_hash,    PDO::PARAM_STR);
 $stmt->bindValue(':email_token', $email_token, PDO::PARAM_STR);
+if ($user_type !== 'agent') {
+    $stmt->bindValue(':area', $area !== '' ? $area : null, PDO::PARAM_STR);
+}
 
 $status = $stmt->execute();
 

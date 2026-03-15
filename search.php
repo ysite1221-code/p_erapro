@@ -3,6 +3,20 @@ session_start();
 include("function.php");
 $pdo = db_conn();
 
+// area_detailカラムを自動追加
+try {
+    $pdo->exec("ALTER TABLE agents ADD COLUMN area_detail VARCHAR(255) DEFAULT NULL");
+} catch (PDOException $e) {}
+
+$prefectures = ['北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県',
+    '茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県',
+    '新潟県','富山県','石川県','福井県','山梨県','長野県',
+    '岐阜県','静岡県','愛知県','三重県',
+    '滋賀県','京都府','大阪府','兵庫県','奈良県','和歌山県',
+    '鳥取県','島根県','岡山県','広島県','山口県',
+    '徳島県','香川県','愛媛県','高知県',
+    '福岡県','佐賀県','長崎県','熊本県','大分県','宮崎県','鹿児島県','沖縄県'];
+
 // 1. 検索条件の受け取り
 $area      = isset($_GET["area"]) ? $_GET["area"] : "";
 $tag       = isset($_GET["tag"])  ? $_GET["tag"]  : "";
@@ -45,7 +59,7 @@ if (!empty($area)) {
     $params[':area'] = $area;
 }
 if (!empty($tag)) {
-    $sql .= " AND (tags LIKE :tag OR title LIKE :tag OR story LIKE :tag)";
+    $sql .= " AND (tags LIKE :tag OR title LIKE :tag OR story LIKE :tag OR area_detail LIKE :tag)";
     $params[':tag'] = '%' . $tag . '%';
 }
 
@@ -119,10 +133,19 @@ if ($status == false) {
             $compat_html = '<span class="compat-badge">✨ 相性 ' . $compat . '%</span>';
         }
 
+        // エリア表示（都道府県 + 市区町村の先頭1件）
+        $area_chip = $r['area'] ?: '未設定';
+        if (!empty($r['area_detail'])) {
+            $detail_parts = array_map('trim', explode(',', $r['area_detail']));
+            if (!empty($detail_parts[0])) {
+                $area_chip .= ' ' . $detail_parts[0];
+            }
+        }
+
         $view .= '<a href="profile.php?id=' . $r["id"] . '" class="card">';
         $view .= '<div class="card-img-wrap">';
         $view .= '<img src="' . h($img) . '" class="card-img" alt="' . h($r["name"]) . '">';
-        $view .= '<span class="card-area-chip">📍 ' . h($r["area"] ?: '未設定') . '</span>';
+        $view .= '<span class="card-area-chip">📍 ' . h($area_chip) . '</span>';
         $view .= '</div>';
         $view .= '<div class="card-body">';
         if ($interest_badge_html) { $view .= $interest_badge_html; }
@@ -378,10 +401,10 @@ if ($status == false) {
         <!-- 検索フォーム -->
         <form action="search.php" method="get" class="search-box">
             <select name="area" class="search-select">
-                <option value="">エリアを選択</option>
-                <option value="東京都" <?= $area === '東京都' ? 'selected' : '' ?>>東京都</option>
-                <option value="大阪府" <?= $area === '大阪府' ? 'selected' : '' ?>>大阪府</option>
-                <option value="福岡県" <?= $area === '福岡県' ? 'selected' : '' ?>>福岡県</option>
+                <option value="">都道府県を選択</option>
+                <?php foreach ($prefectures as $p): ?>
+                <option value="<?= h($p) ?>" <?= $area === $p ? 'selected' : '' ?>><?= h($p) ?></option>
+                <?php endforeach; ?>
             </select>
             <input type="text" name="tag" class="search-input"
                    placeholder="キーワード（例: 子育て, 相続）"
