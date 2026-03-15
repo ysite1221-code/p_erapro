@@ -707,7 +707,7 @@ if (!empty($user_interests)) {
             <?php
                 $img = $a['profile_img']
                     ? 'uploads/' . $a['profile_img']
-                    : 'https://placehold.co/400x200/e0e0e0/888?text=No+Image';
+                    : 'https://picsum.photos/seed/agent' . $a['id'] . '/600/360';
                 $fav_compat = '';
                 if ($user_score !== null && isset($a['diagnosis_score']) && $a['diagnosis_score'] !== null) {
                     $c = 100 - abs($user_score - (int)$a['diagnosis_score']);
@@ -746,7 +746,7 @@ if (!empty($user_interests)) {
             <?php
                 $img = $a['profile_img']
                     ? 'uploads/' . $a['profile_img']
-                    : 'https://placehold.co/400x200/e0e0e0/888?text=No+Image';
+                    : 'https://picsum.photos/seed/agent' . $a['id'] . '/600/360';
                 $ma_compat = '';
                 if ($user_score !== null && isset($a['diagnosis_score']) && $a['diagnosis_score'] !== null) {
                     $c = 100 - abs($user_score - (int)$a['diagnosis_score']);
