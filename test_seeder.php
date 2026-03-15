@@ -18,6 +18,14 @@ if (APP_ENV !== 'development') {
 $pdo = db_conn();
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+// agentsテーブルのカラム追加（既存環境でカラムがない場合の自動補完）
+try {
+    $pdo->exec("ALTER TABLE agents ADD COLUMN diagnosis_score INT DEFAULT NULL");
+} catch (PDOException $e) {}
+try {
+    $pdo->exec("ALTER TABLE agents ADD COLUMN diagnosis_type VARCHAR(50) DEFAULT NULL");
+} catch (PDOException $e) {}
+
 // 共通パスワード
 $lpw = password_hash('1111', PASSWORD_DEFAULT);
 
