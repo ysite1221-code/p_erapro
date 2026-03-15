@@ -16,15 +16,23 @@ $type_info = [
 ];
 $matched_type = isset($type_info[$diag_type]) ? $type_info[$diag_type] : null;
 
-// ログイン中ユーザーのdiagnosis_scoreをDBから取得
-$user_score = null;
+// ログイン中ユーザーのスコア・関心事をDBから取得
+$user_score     = null;
+$user_interests = [];
 if (isset($_SESSION['id'], $_SESSION['user_type']) && $_SESSION['user_type'] === 'user') {
-    $stmt_u = $pdo->prepare("SELECT diagnosis_score FROM users WHERE id=:uid AND life_flg=0");
+    $stmt_u = $pdo->prepare("SELECT diagnosis_score, interests FROM users WHERE id=:uid AND life_flg=0");
     $stmt_u->bindValue(':uid', (int)$_SESSION['id'], PDO::PARAM_INT);
     $stmt_u->execute();
-    $sc = $stmt_u->fetchColumn();
-    if ($sc !== false && $sc !== null) {
-        $user_score = (int)$sc;
+    $user_row = $stmt_u->fetch(PDO::FETCH_ASSOC);
+    if ($user_row) {
+        $sc = $user_row['diagnosis_score'];
+        if ($sc !== false && $sc !== null) {
+            $user_score = (int)$sc;
+        }
+        $int_str = $user_row['interests'] ?? '';
+        if (!empty($int_str)) {
+            $user_interests = array_values(array_filter(array_map('trim', explode(',', $int_str))));
+        }
     }
 }
 
@@ -41,13 +49,27 @@ if (!empty($tag)) {
     $params[':tag'] = '%' . $tag . '%';
 }
 
-// スコアがある場合はABS相性順、なければ登録順
-if ($user_score !== null) {
-    $sql .= " ORDER BY ABS(COALESCE(diagnosis_score, 50) - :user_score) ASC, id DESC";
-    $params[':user_score'] = $user_score;
-} else {
-    $sql .= " ORDER BY id DESC";
+// ORDER BY の組み立て
+// 優先度: ①関心事合致 → ②スコア相性 → ③登録順
+$order_parts = [];
+
+if (!empty($user_interests)) {
+    $int_cases = [];
+    foreach ($user_interests as $i => $kw) {
+        $key = ':iord' . $i;
+        $int_cases[] = "tags LIKE $key";
+        $params[$key] = '%' . $kw . '%';
+    }
+    $order_parts[] = "CASE WHEN (" . implode(' OR ', $int_cases) . ") THEN 0 ELSE 1 END ASC";
 }
+
+if ($user_score !== null) {
+    $order_parts[] = "ABS(COALESCE(diagnosis_score, 50) - :user_score) ASC";
+    $params[':user_score'] = $user_score;
+}
+
+$order_parts[] = "id DESC";
+$sql .= " ORDER BY " . implode(', ', $order_parts);
 
 // 3. 実行
 $stmt = $pdo->prepare($sql);
@@ -55,6 +77,7 @@ foreach ($params as $k => $v) {
     $type = ($k === ':user_score') ? PDO::PARAM_INT : PDO::PARAM_STR;
     $stmt->bindValue($k, $v, $type);
 }
+
 $status = $stmt->execute();
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -77,6 +100,18 @@ if ($status == false) {
             }
         }
 
+        // 関心事ハイライトバッジ
+        $interest_badge_html = '';
+        if (!empty($user_interests) && !empty($r['tags'])) {
+            $agent_tags_lower = mb_strtolower($r['tags']);
+            foreach ($user_interests as $kw) {
+                if (mb_strpos($agent_tags_lower, mb_strtolower($kw)) !== false) {
+                    $interest_badge_html = '<span class="interest-badge">💡 あなたの関心（' . h($kw) . '）に強いプロです</span>';
+                    break;
+                }
+            }
+        }
+
         // 相性バッジ
         $compat_html = '';
         if ($user_score !== null && isset($r['diagnosis_score']) && $r['diagnosis_score'] !== null) {
@@ -90,6 +125,7 @@ if ($status == false) {
         $view .= '<span class="card-area-chip">📍 ' . h($r["area"] ?: '未設定') . '</span>';
         $view .= '</div>';
         $view .= '<div class="card-body">';
+        if ($interest_badge_html) { $view .= $interest_badge_html; }
         if ($compat_html) { $view .= $compat_html; }
         $view .= '<p class="card-catch">' . h(mb_substr($r["title"] ?? '', 0, 45)) . '</p>';
         $view .= '<h3 class="card-name">' . h($r["name"]) . '</h3>';
@@ -272,6 +308,20 @@ if ($status == false) {
             color: #999;
             line-height: 1.7;
             margin: 0;
+        }
+
+        /* ===== 関心事ハイライトバッジ ===== */
+        .interest-badge {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+            padding: 4px 10px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            line-height: 1.4;
         }
 
         /* ===== 相性バッジ ===== */

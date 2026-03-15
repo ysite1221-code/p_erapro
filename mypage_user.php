@@ -7,6 +7,11 @@ $user_id   = (int)$_SESSION['id'];
 $user_name = $_SESSION['name'];
 $pdo       = db_conn();
 
+// usersテーブルにinterestsカラムを自動追加
+try {
+    $pdo->exec("ALTER TABLE users ADD COLUMN interests VARCHAR(255) DEFAULT NULL");
+} catch (PDOException $e) {}
+
 // favoritesテーブルをなければ作成
 $pdo->exec("CREATE TABLE IF NOT EXISTS favorites (
     id         INT AUTO_INCREMENT PRIMARY KEY,
@@ -51,13 +56,13 @@ $stmt->bindValue(':uid', $user_id, PDO::PARAM_INT);
 $stmt->execute();
 $unread_msg_count = (int)$stmt->fetchColumn();
 
-// 診断タイプ・スコア：DBを正として取得し、セッションに同期
-$stmt_diag = $pdo->prepare("SELECT diagnosis_type, diagnosis_score FROM users WHERE id=:uid AND life_flg=0");
+// 診断タイプ・スコア・関心事：DBを正として取得し、セッションに同期
+$stmt_diag = $pdo->prepare("SELECT diagnosis_type, diagnosis_score, interests FROM users WHERE id=:uid AND life_flg=0");
 $stmt_diag->bindValue(':uid', $user_id, PDO::PARAM_INT);
 $stmt_diag->execute();
 $diag_row = $stmt_diag->fetch(PDO::FETCH_ASSOC);
 
-$db_diag_type = $diag_row ? $diag_row['diagnosis_type'] : null;
+$db_diag_type  = $diag_row ? $diag_row['diagnosis_type'] : null;
 $db_diag_score = ($diag_row && $diag_row['diagnosis_score'] !== null) ? (int)$diag_row['diagnosis_score'] : null;
 
 if (!empty($db_diag_type)) {
@@ -68,11 +73,52 @@ if (!empty($db_diag_type)) {
 }
 $user_score = $db_diag_score;
 
+// 関心事パース
+$interests_str  = ($diag_row && !empty($diag_row['interests'])) ? $diag_row['interests'] : '';
+$user_interests = (!empty($interests_str))
+    ? array_values(array_filter(array_map('trim', explode(',', $interests_str))))
+    : [];
+
 $type_labels = [
     'logic_seeker'   => ['論理・データ重視タイプ', '📊'],
     'empathy_seeker' => ['バランス重視タイプ',     '🤝'],
     'support_seeker' => ['感情・寄り添い重視タイプ','💛'],
 ];
+
+// 関心事選択肢
+$all_interests = ['結婚', '妊娠・出産', '住宅購入', '教育資金', '資産運用', '老後の備え', '自動車購入'];
+
+// おすすめAgent取得（関心事が設定されている場合）
+$recommended = [];
+if (!empty($user_interests)) {
+    $int_conditions = [];
+    $int_params     = [];
+    foreach ($user_interests as $i => $kw) {
+        $key = ':ikw' . $i;
+        $int_conditions[] = "a.tags LIKE $key";
+        $int_params[$key]  = '%' . $kw . '%';
+    }
+    $rec_sql = "SELECT a.id, a.name, a.title, a.area, a.tags, a.profile_img, a.diagnosis_score
+                FROM agents a
+                WHERE a.life_flg = 0
+                  AND (" . implode(' OR ', $int_conditions) . ")";
+    if ($user_score !== null) {
+        $rec_sql .= " ORDER BY ABS(COALESCE(a.diagnosis_score, 50) - :rec_score) ASC, a.id DESC";
+    } else {
+        $rec_sql .= " ORDER BY a.id DESC";
+    }
+    $rec_sql .= " LIMIT 5";
+
+    $rec_stmt = $pdo->prepare($rec_sql);
+    foreach ($int_params as $k => $v) {
+        $rec_stmt->bindValue($k, $v, PDO::PARAM_STR);
+    }
+    if ($user_score !== null) {
+        $rec_stmt->bindValue(':rec_score', $user_score, PDO::PARAM_INT);
+    }
+    $rec_stmt->execute();
+    $recommended = $rec_stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 ?>
 <!DOCTYPE html>
 <html lang="ja">
@@ -268,6 +314,105 @@ $type_labels = [
             border-radius: 12px;
         }
 
+        /* ===== 関心事セクション ===== */
+        .interest-section {
+            background: #fff;
+            border-radius: 12px;
+            padding: 22px 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .interest-section-header { margin-bottom: 14px; }
+        .interest-section-header h3 { font-size: 0.97rem; font-weight: 700; color: #111; margin: 0 0 3px; }
+        .interest-section-header p  { font-size: 0.8rem; color: #999; margin: 0; }
+        .interest-chips { display: flex; flex-wrap: wrap; gap: 9px; }
+        .interest-chip {
+            padding: 7px 16px;
+            border: 1.5px solid #d8d8d8;
+            border-radius: 24px;
+            background: #fafafa;
+            color: #555;
+            font-size: 0.84rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.17s;
+            line-height: 1;
+        }
+        .interest-chip:hover { border-color: #004e92; color: #004e92; background: #f0f4ff; }
+        .interest-chip.active {
+            border-color: #004e92;
+            background: #004e92;
+            color: #fff;
+            font-weight: 600;
+        }
+        .interest-chip.saving { opacity: 0.5; pointer-events: none; }
+
+        /* ===== おすすめセクション ===== */
+        .recommend-section { margin-bottom: 28px; }
+        .recommend-header {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+        .recommend-header h3 { font-size: 1rem; font-weight: 700; color: #111; margin: 0; }
+        .recommend-header p  { font-size: 0.8rem; color: #999; margin: 0; }
+        .recommend-scroll {
+            display: flex;
+            gap: 14px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+            scrollbar-width: thin;
+            scrollbar-color: #e0e0e0 transparent;
+        }
+        .recommend-scroll::-webkit-scrollbar { height: 4px; }
+        .recommend-scroll::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+        .rec-card {
+            flex-shrink: 0;
+            width: 196px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+            overflow: hidden;
+            text-decoration: none;
+            color: inherit;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: block;
+        }
+        .rec-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.11); }
+        .rec-card-img-wrap { width: 100%; height: 108px; overflow: hidden; }
+        .rec-card-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; display: block; }
+        .rec-card:hover .rec-card-img { transform: scale(1.05); }
+        .rec-card-body { padding: 11px 13px 13px; }
+        .rec-card-catch { font-size: 0.79rem; font-weight: 700; color: #111; margin: 0 0 3px; line-height: 1.4; }
+        .rec-card-name  { font-size: 0.76rem; color: #888; margin: 0 0 6px; }
+        .rec-card-area  { font-size: 0.71rem; color: #bbb; }
+        .rec-card-more {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f4f6f9;
+            border: 1.5px dashed #d0d0d0;
+            color: #aaa;
+            font-size: 0.82rem;
+            text-align: center;
+        }
+        .rec-card-more:hover { border-color: #004e92; color: #004e92; background: #f0f4ff; }
+        .rec-more-icon { font-size: 1.4rem; display: block; margin-bottom: 6px; }
+
+        /* ===== 関心事バッジ（カード内） ===== */
+        .interest-badge {
+            display: inline-block;
+            font-size: 0.71rem;
+            font-weight: 600;
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-bottom: 5px;
+        }
+
         /* ===== 相性バッジ ===== */
         .compat-badge {
             display: inline-block;
@@ -331,6 +476,24 @@ $type_labels = [
         <?php endif; ?>
     </div>
 
+    <!-- 関心事選択 -->
+    <div class="interest-section">
+        <div class="interest-section-header">
+            <h3>今のあなたに当てはまる関心事は？</h3>
+            <p>選択した関心事に強いプロをおすすめします（複数選択可）</p>
+        </div>
+        <div class="interest-chips" id="interest-chips">
+            <?php foreach ($all_interests as $kw): ?>
+            <button
+                class="interest-chip <?= in_array($kw, $user_interests) ? 'active' : '' ?>"
+                data-interest="<?= h($kw) ?>"
+                onclick="toggleInterest(this)">
+                <?= in_array($kw, $user_interests) ? '✓ ' : '' ?><?= h($kw) ?>
+            </button>
+            <?php endforeach; ?>
+        </div>
+    </div>
+
     <!-- クイックアクション -->
     <div class="quick-actions">
         <a href="search.php" class="qa-card">
@@ -359,6 +522,59 @@ $type_labels = [
             <?php endif; ?>
         </a>
     </div>
+
+    <!-- あなたへのおすすめのプロ -->
+    <?php if (!empty($recommended)): ?>
+    <div class="recommend-section">
+        <div class="recommend-header">
+            <h3>✨ あなたへのおすすめのプロ</h3>
+            <p>選択した関心事と診断タイプからピックアップ</p>
+        </div>
+        <div class="recommend-scroll">
+            <?php foreach ($recommended as $r): ?>
+            <?php
+                $rec_img = $r['profile_img']
+                    ? 'uploads/' . $r['profile_img']
+                    : 'https://picsum.photos/seed/agent' . $r['id'] . '/300/200';
+                // 合致した関心事キーワードを探す
+                $matched_kw = '';
+                foreach ($user_interests as $kw) {
+                    if (!empty($r['tags']) && mb_strpos(mb_strtolower($r['tags']), mb_strtolower($kw)) !== false) {
+                        $matched_kw = $kw;
+                        break;
+                    }
+                }
+                // 相性
+                $rec_compat = '';
+                if ($user_score !== null && isset($r['diagnosis_score']) && $r['diagnosis_score'] !== null) {
+                    $c = 100 - abs($user_score - (int)$r['diagnosis_score']);
+                    $rec_compat = '<span class="compat-badge" style="display:inline-block;font-size:0.7rem;margin-bottom:4px;">✨ 相性 ' . $c . '%</span>';
+                }
+            ?>
+            <a href="profile.php?id=<?= $r['id'] ?>" class="rec-card">
+                <div class="rec-card-img-wrap">
+                    <img src="<?= h($rec_img) ?>" class="rec-card-img" alt="<?= h($r['name']) ?>">
+                </div>
+                <div class="rec-card-body">
+                    <?php if ($matched_kw): ?>
+                    <span class="interest-badge">💡 <?= h($matched_kw) ?>に強いプロ</span><br>
+                    <?php endif; ?>
+                    <?= $rec_compat ?>
+                    <p class="rec-card-catch"><?= h(mb_substr($r['title'] ?? '', 0, 28)) ?><?= mb_strlen($r['title'] ?? '') > 28 ? '…' : '' ?></p>
+                    <p class="rec-card-name"><?= h($r['name']) ?></p>
+                    <span class="rec-card-area">📍 <?= h($r['area'] ?: '未設定') ?></span>
+                </div>
+            </a>
+            <?php endforeach; ?>
+            <a href="search.php" class="rec-card rec-card-more">
+                <div>
+                    <span class="rec-more-icon">→</span>
+                    <span>もっと見る</span>
+                </div>
+            </a>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <!-- タブナビ -->
     <div class="tab-nav">
@@ -470,6 +686,32 @@ $type_labels = [
 </div>
 
 <script>
+// 関心事チップのトグル
+function toggleInterest(el) {
+    const interest = el.dataset.interest;
+    el.classList.add('saving');
+
+    fetch('update_interest.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'interest=' + encodeURIComponent(interest)
+    })
+    .then(r => r.json())
+    .then(data => {
+        el.classList.remove('saving');
+        if (data.result === 'added') {
+            el.classList.add('active');
+            el.textContent = '✓ ' + interest;
+        } else {
+            el.classList.remove('active');
+            el.textContent = interest;
+        }
+        // おすすめ枠を最新状態に同期
+        setTimeout(() => location.reload(), 350);
+    })
+    .catch(() => el.classList.remove('saving'));
+}
+
 // タブ切り替え
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', function () {
