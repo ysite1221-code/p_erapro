@@ -5,7 +5,6 @@
         </a>
         <nav class="header-nav">
             <?php
-            if (session_status() === PHP_SESSION_NONE) { session_start(); }
             if (isset($_SESSION['chk_ssid']) && isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'user') {
                 echo '<a href="mypage_user.php" class="btn-mypage">マイページ</a>';
                 echo '<a href="logout.php" class="btn-login">ログアウト</a>';

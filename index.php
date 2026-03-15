@@ -1,4 +1,4 @@
-<?php include("function.php"); ?>
+<?php session_start(); include("function.php"); ?>
 <!DOCTYPE html>
 <html lang="ja">
 <head>
