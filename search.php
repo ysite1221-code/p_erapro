@@ -8,14 +8,25 @@ $area      = isset($_GET["area"]) ? $_GET["area"] : "";
 $tag       = isset($_GET["tag"])  ? $_GET["tag"]  : "";
 $diag_type = isset($_GET["type"]) ? $_GET["type"] : "";
 
-// 診断タイプ → バナー情報 & 推奨タグキーワード
+// 診断タイプ → バナー情報（新3タイプ）
 $type_info = [
-    'logical'    => ['label' => '論理的ストラテジスト', 'emoji' => '📊', 'color' => '#004e92', 'keywords' => ['論理派','データ重視','損保']],
-    'balanced_l' => ['label' => '着実なプランナー',     'emoji' => '🗂️', 'color' => '#2e7d32', 'keywords' => ['バランス型','丁寧']],
-    'balanced_e' => ['label' => '共感重視のパートナー型','emoji' => '🤝', 'color' => '#e65100', 'keywords' => ['寄り添い','親身']],
-    'emotional'  => ['label' => '情熱的なサポーター型', 'emoji' => '💛', 'color' => '#c62828', 'keywords' => ['現場力','安心','親身']],
+    'logic_seeker'   => ['label' => '論理・データ重視タイプ', 'emoji' => '📊', 'color' => '#004e92'],
+    'empathy_seeker' => ['label' => 'バランス重視タイプ',     'emoji' => '🤝', 'color' => '#2e7d32'],
+    'support_seeker' => ['label' => '感情・寄り添い重視タイプ','emoji' => '💛', 'color' => '#e65100'],
 ];
 $matched_type = isset($type_info[$diag_type]) ? $type_info[$diag_type] : null;
+
+// ログイン中ユーザーのdiagnosis_scoreをDBから取得
+$user_score = null;
+if (isset($_SESSION['id'], $_SESSION['user_type']) && $_SESSION['user_type'] === 'user') {
+    $stmt_u = $pdo->prepare("SELECT diagnosis_score FROM users WHERE id=:uid AND life_flg=0");
+    $stmt_u->bindValue(':uid', (int)$_SESSION['id'], PDO::PARAM_INT);
+    $stmt_u->execute();
+    $sc = $stmt_u->fetchColumn();
+    if ($sc !== false && $sc !== null) {
+        $user_score = (int)$sc;
+    }
+}
 
 // 2. SQLの組み立て
 $sql    = "SELECT * FROM agents WHERE life_flg=0";
@@ -30,41 +41,22 @@ if (!empty($tag)) {
     $params[':tag'] = '%' . $tag . '%';
 }
 
-// 診断タイプによるタグ絞り込み（タグ検索が空の場合のみ適用）
-$diag_filter_active = false;
-if (!empty($matched_type) && empty($tag)) {
-    $keyword_conditions = [];
-    foreach ($matched_type['keywords'] as $ki => $kw) {
-        $key = ':dtag' . $ki;
-        $keyword_conditions[] = "tags LIKE $key";
-        $params[$key] = '%' . $kw . '%';
-    }
-    $sql .= " AND (" . implode(' OR ', $keyword_conditions) . ")";
-    $diag_filter_active = true;
+// スコアがある場合はABS相性順、なければ登録順
+if ($user_score !== null) {
+    $sql .= " ORDER BY ABS(COALESCE(diagnosis_score, 50) - :user_score) ASC, id DESC";
+    $params[':user_score'] = $user_score;
+} else {
+    $sql .= " ORDER BY id DESC";
 }
-
-$sql .= " ORDER BY id DESC";
 
 // 3. 実行
 $stmt = $pdo->prepare($sql);
 foreach ($params as $k => $v) {
-    $stmt->bindValue($k, $v, PDO::PARAM_STR);
+    $type = ($k === ':user_score') ? PDO::PARAM_INT : PDO::PARAM_STR;
+    $stmt->bindValue($k, $v, $type);
 }
 $status = $stmt->execute();
-
-// 絞り込み結果が0件なら診断フィルタを外して再取得
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-if ($diag_filter_active && count($rows) === 0) {
-    $sql2    = "SELECT * FROM agents WHERE life_flg=0";
-    $params2 = [];
-    if (!empty($area)) { $sql2 .= " AND area = :area"; $params2[':area'] = $area; }
-    $sql2 .= " ORDER BY id DESC";
-    $stmt2 = $pdo->prepare($sql2);
-    foreach ($params2 as $k => $v) $stmt2->bindValue($k, $v, PDO::PARAM_STR);
-    $stmt2->execute();
-    $rows = $stmt2->fetchAll(PDO::FETCH_ASSOC);
-    $diag_filter_active = false;
-}
 
 // 4. カードHTML生成
 $view = "";
@@ -85,12 +77,20 @@ if ($status == false) {
             }
         }
 
+        // 相性バッジ
+        $compat_html = '';
+        if ($user_score !== null && isset($r['diagnosis_score']) && $r['diagnosis_score'] !== null) {
+            $compat = 100 - abs($user_score - (int)$r['diagnosis_score']);
+            $compat_html = '<span class="compat-badge">✨ 相性 ' . $compat . '%</span>';
+        }
+
         $view .= '<a href="profile.php?id=' . $r["id"] . '" class="card">';
         $view .= '<div class="card-img-wrap">';
         $view .= '<img src="' . h($img) . '" class="card-img" alt="' . h($r["name"]) . '">';
         $view .= '<span class="card-area-chip">📍 ' . h($r["area"] ?: '未設定') . '</span>';
         $view .= '</div>';
         $view .= '<div class="card-body">';
+        if ($compat_html) { $view .= $compat_html; }
         $view .= '<p class="card-catch">' . h(mb_substr($r["title"] ?? '', 0, 45)) . '</p>';
         $view .= '<h3 class="card-name">' . h($r["name"]) . '</h3>';
         if ($tags_html) {
@@ -274,6 +274,18 @@ if ($status == false) {
             margin: 0;
         }
 
+        /* ===== 相性バッジ ===== */
+        .compat-badge {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f4c430, #e8961c);
+            color: #fff;
+            padding: 3px 10px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+
         /* ===== 空状態 ===== */
         .empty-state {
             grid-column: 1 / -1;
@@ -304,8 +316,8 @@ if ($status == false) {
                 <div class="diag-banner-label">診断タイプ</div>
                 <div class="diag-banner-title">
                     <?= h($matched_type['label']) ?>
-                    <?php if ($diag_filter_active): ?>
-                    <span class="diag-filter-badge">相性の高いプロを表示中</span>
+                    <?php if ($user_score !== null): ?>
+                    <span class="diag-filter-badge">相性順に表示中</span>
                     <?php endif; ?>
                 </div>
             </div>

@@ -12,6 +12,16 @@ $area       = $_POST["area"];
 $tags       = $_POST["tags"];
 $id         = $_SESSION["id"];
 
+// 営業スタイルスコア（0〜100）とタイプ分類
+$diag_score = max(0, min(100, (int)($_POST['diagnosis_score'] ?? 50)));
+if ($diag_score >= 60) {
+    $diag_type = '価値伝達型';
+} elseif ($diag_score >= 40) {
+    $diag_type = 'ハイブリッド型';
+} else {
+    $diag_type = '支援先行型';
+}
+
 $img_name = ""; // 画像ファイル名を格納する変数
 
 // 2. 画像アップロード処理
@@ -45,10 +55,10 @@ $pdo = db_conn();
 // 画像がアップロードされた場合と、されていない場合でSQLを分ける
 if($img_name != "") {
     // 画像あり更新
-    $sql = "UPDATE agents SET name=:name, title=:title, story=:story, philosophy=:philosophy, area=:area, tags=:tags, profile_img=:img WHERE id=:id";
+    $sql = "UPDATE agents SET name=:name, title=:title, story=:story, philosophy=:philosophy, area=:area, tags=:tags, profile_img=:img, diagnosis_score=:dscore, diagnosis_type=:dtype WHERE id=:id";
 } else {
     // 画像なし更新（profile_imgは更新しない）
-    $sql = "UPDATE agents SET name=:name, title=:title, story=:story, philosophy=:philosophy, area=:area, tags=:tags WHERE id=:id";
+    $sql = "UPDATE agents SET name=:name, title=:title, story=:story, philosophy=:philosophy, area=:area, tags=:tags, diagnosis_score=:dscore, diagnosis_type=:dtype WHERE id=:id";
 }
 
 $stmt = $pdo->prepare($sql);
@@ -58,6 +68,8 @@ $stmt->bindValue(':story',      $story,      PDO::PARAM_STR);
 $stmt->bindValue(':philosophy', $philosophy, PDO::PARAM_STR);
 $stmt->bindValue(':area',       $area,       PDO::PARAM_STR);
 $stmt->bindValue(':tags',       $tags,       PDO::PARAM_STR);
+$stmt->bindValue(':dscore',     $diag_score, PDO::PARAM_INT);
+$stmt->bindValue(':dtype',      $diag_type,  PDO::PARAM_STR);
 $stmt->bindValue(':id',         $id,         PDO::PARAM_INT);
 
 // 画像がある場合だけバインド

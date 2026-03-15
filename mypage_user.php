@@ -20,7 +20,7 @@ $pdo->exec("CREATE TABLE IF NOT EXISTS favorites (
 
 // お気に入り一覧（status=1）
 $stmt = $pdo->prepare(
-    "SELECT a.id, a.name, a.title, a.area, a.tags, a.profile_img, f.created_at AS fav_at
+    "SELECT a.id, a.name, a.title, a.area, a.tags, a.profile_img, a.diagnosis_score, f.created_at AS fav_at
      FROM favorites f
      JOIN agents a ON f.agent_id = a.id
      WHERE f.user_id=:uid AND f.status=1 AND a.life_flg=0
@@ -32,7 +32,7 @@ $favorites = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // My Agent一覧（status=2）
 $stmt = $pdo->prepare(
-    "SELECT a.id, a.name, a.title, a.area, a.tags, a.profile_img, f.updated_at AS reg_at
+    "SELECT a.id, a.name, a.title, a.area, a.tags, a.profile_img, a.diagnosis_score, f.updated_at AS reg_at
      FROM favorites f
      JOIN agents a ON f.agent_id = a.id
      WHERE f.user_id=:uid AND f.status=2 AND a.life_flg=0
@@ -51,25 +51,27 @@ $stmt->bindValue(':uid', $user_id, PDO::PARAM_INT);
 $stmt->execute();
 $unread_msg_count = (int)$stmt->fetchColumn();
 
-// 診断タイプ：DBを正として取得し、セッションに同期
-$stmt = $pdo->prepare("SELECT diagnosis_type FROM users WHERE id=:uid AND life_flg=0");
-$stmt->bindValue(':uid', $user_id, PDO::PARAM_INT);
-$stmt->execute();
-$db_diag_type = $stmt->fetchColumn();
+// 診断タイプ・スコア：DBを正として取得し、セッションに同期
+$stmt_diag = $pdo->prepare("SELECT diagnosis_type, diagnosis_score FROM users WHERE id=:uid AND life_flg=0");
+$stmt_diag->bindValue(':uid', $user_id, PDO::PARAM_INT);
+$stmt_diag->execute();
+$diag_row = $stmt_diag->fetch(PDO::FETCH_ASSOC);
+
+$db_diag_type = $diag_row ? $diag_row['diagnosis_type'] : null;
+$db_diag_score = ($diag_row && $diag_row['diagnosis_score'] !== null) ? (int)$diag_row['diagnosis_score'] : null;
 
 if (!empty($db_diag_type)) {
-    // DBに値があればそれを正として使用し、セッションにも同期
     $diag_type = $db_diag_type;
     $_SESSION['diagnosis_type'] = $db_diag_type;
 } else {
-    // DBが空ならセッションから復元（ログインしたまま診断した場合など）
     $diag_type = $_SESSION['diagnosis_type'] ?? null;
 }
+$user_score = $db_diag_score;
+
 $type_labels = [
-    'logical'    => ['論理的ストラテジスト', '📊'],
-    'balanced_l' => ['着実なプランナー',     '🗂️'],
-    'balanced_e' => ['共感重視のパートナー型','🤝'],
-    'emotional'  => ['情熱的なサポーター型', '💛'],
+    'logic_seeker'   => ['論理・データ重視タイプ', '📊'],
+    'empathy_seeker' => ['バランス重視タイプ',     '🤝'],
+    'support_seeker' => ['感情・寄り添い重視タイプ','💛'],
 ];
 ?>
 <!DOCTYPE html>
@@ -266,6 +268,18 @@ $type_labels = [
             border-radius: 12px;
         }
 
+        /* ===== 相性バッジ ===== */
+        .compat-badge {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f4c430, #e8961c);
+            color: #fff;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-bottom: 6px;
+        }
+
         /* ===== 空状態 ===== */
         .empty-state {
             text-align: center;
@@ -367,10 +381,16 @@ $type_labels = [
                 $img = $a['profile_img']
                     ? 'uploads/' . $a['profile_img']
                     : 'https://placehold.co/400x200/e0e0e0/888?text=No+Image';
+                $fav_compat = '';
+                if ($user_score !== null && isset($a['diagnosis_score']) && $a['diagnosis_score'] !== null) {
+                    $c = 100 - abs($user_score - (int)$a['diagnosis_score']);
+                    $fav_compat = '<span class="compat-badge">✨ 相性 ' . $c . '%</span>';
+                }
             ?>
             <div class="agent-card" id="fav-card-<?= $a['id'] ?>">
                 <img src="<?= h($img) ?>" class="agent-card-img" alt="<?= h($a['name']) ?>">
                 <div class="agent-card-body">
+                    <?= $fav_compat ?>
                     <span class="area-tag">📍 <?= h($a['area'] ?: '未設定') ?></span>
                     <h3><?= h($a['name']) ?></h3>
                     <p class="catch"><?= h(mb_substr($a['title'] ?? '', 0, 40)) ?></p>
@@ -400,11 +420,17 @@ $type_labels = [
                 $img = $a['profile_img']
                     ? 'uploads/' . $a['profile_img']
                     : 'https://placehold.co/400x200/e0e0e0/888?text=No+Image';
+                $ma_compat = '';
+                if ($user_score !== null && isset($a['diagnosis_score']) && $a['diagnosis_score'] !== null) {
+                    $c = 100 - abs($user_score - (int)$a['diagnosis_score']);
+                    $ma_compat = '<span class="compat-badge">✨ 相性 ' . $c . '%</span>';
+                }
             ?>
             <div class="agent-card" id="myagent-card-<?= $a['id'] ?>">
                 <span class="my-agent-badge">⭐ My Agent</span>
                 <img src="<?= h($img) ?>" class="agent-card-img" alt="<?= h($a['name']) ?>">
                 <div class="agent-card-body">
+                    <?= $ma_compat ?>
                     <span class="area-tag">📍 <?= h($a['area'] ?: '未設定') ?></span>
                     <h3><?= h($a['name']) ?></h3>
                     <p class="catch"><?= h(mb_substr($a['title'] ?? '', 0, 40)) ?></p>

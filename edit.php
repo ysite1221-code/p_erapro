@@ -80,6 +80,24 @@ $row = $stmt->fetch();
                               placeholder="あなたが大切にしていること、仕事への姿勢を書いてみましょう。"><?= h($row["philosophy"]) ?></textarea>
                 </div>
 
+                <div class="form-group">
+                    <label class="form-label">営業スタイル自己評価</label>
+                    <div style="display:flex; justify-content:space-between; font-size:0.78rem; color:#888; margin-bottom:6px;">
+                        <span>感情・寄り添い重視<br>（支援先行型）</span>
+                        <span style="text-align:right;">論理・データ重視<br>（価値伝達型）</span>
+                    </div>
+                    <input type="range" name="diagnosis_score" min="0" max="100" step="10"
+                           value="<?= (int)($row['diagnosis_score'] ?? 50) ?>"
+                           oninput="document.getElementById('scoreVal').textContent=this.value"
+                           style="width:100%; accent-color:#004e92;">
+                    <div style="text-align:center; font-size:0.88rem; color:#004e92; font-weight:bold; margin-top:6px;">
+                        現在の値：<span id="scoreVal"><?= (int)($row['diagnosis_score'] ?? 50) ?></span> 点
+                    </div>
+                    <p style="font-size:0.78rem; color:#aaa; margin-top:6px;">
+                        0〜39: 支援先行型 ／ 40〜59: ハイブリッド型 ／ 60〜100: 価値伝達型
+                    </p>
+                </div>
+
                 <button type="submit" class="btn-submit">プロフィールを更新する</button>
 
             </form>

@@ -12,91 +12,87 @@ if (isset($_GET['retry'])) {
     redirect('diagnosis.php');
 }
 
-// diagnosis_type カラムが未作成の場合に備えて自動追加（IF NOT EXISTS相当）
+// diagnosis_score / diagnosis_type カラムが未作成の場合に備えて自動追加
+try {
+    $pdo_init = db_conn();
+    $pdo_init->exec("ALTER TABLE users ADD COLUMN diagnosis_score INT DEFAULT NULL");
+} catch (PDOException $e) { /* 既存カラムは無視 */ }
 try {
     $pdo_init = db_conn();
     $pdo_init->exec("ALTER TABLE users ADD COLUMN diagnosis_type VARCHAR(50) DEFAULT NULL");
-} catch (PDOException $e) {
-    // カラムが既に存在する場合は無視
-}
+} catch (PDOException $e) { /* 既存カラムは無視 */ }
 
 // ---------------------------------------------------
-// POST：診断結果を計算してセッションに保存
+// POST：診断結果を計算してセッションに保存（0〜100スコア方式）
 // ---------------------------------------------------
 $result_type  = null;
 $result_data  = null;
 
+// ── 3タイプ定義 ──────────────────────────────────
 $types = [
-    'logical' => [
-        'label'   => '論理的ストラテジスト',
-        'emoji'   => '📊',
-        'color'   => '#004e92',
-        'desc'    => 'あなたはデータと数字で判断するタイプ。保険選びでも「根拠のある説明」「比較データ」を重視します。感情ではなく論理で納得したい、合理的な決断者です。',
-        'ideal'   => 'データや数字を丁寧に示しながら、論理的に説明してくれるプロが最適です。',
-        'tags'    => ['論理派', 'データ重視', '損保'],
-        'bg'      => 'linear-gradient(135deg, #004e92, #1a73e8)',
+    'logic_seeker' => [
+        'label'  => '正しい理解重視層',
+        'emoji'  => '📊',
+        'color'  => '#004e92',
+        'score_range' => '70〜100点',
+        'desc'   => 'あなたはデータと論理で判断する「正しい理解重視層」です。保険選びでも根拠のある説明・比較データを求め、感情ではなく事実で納得したい合理的な意思決定者です。',
+        'ideal'  => 'データや数字を丁寧に示しながら、論理的に説明してくれるプロが最適です。価値を正確に伝えてくれる「価値伝達型」のAgentとの相性が抜群です。',
+        'bg'     => 'linear-gradient(135deg, #004e92, #1a73e8)',
     ],
-    'balanced_l' => [
-        'label'   => '着実なプランナー',
-        'emoji'   => '🗂️',
-        'color'   => '#2e7d32',
-        'desc'    => 'あなたは論理と感情のバランスが取れたタイプ。根拠ある説明を求めながらも、担当者への信頼感も大切にします。計画的に着実に進める実直な判断者です。',
-        'ideal'   => '丁寧な説明と親身な対応を両立できるプロが最適です。',
-        'tags'    => ['バランス型', '丁寧'],
-        'bg'      => 'linear-gradient(135deg, #2e7d32, #43a047)',
+    'empathy_seeker' => [
+        'label'  => '共感優位層',
+        'emoji'  => '🤝',
+        'color'  => '#e65100',
+        'score_range' => '40〜69点',
+        'desc'   => 'あなたは論理と共感のバランスを重視する「共感優位層」です。根拠ある説明を求めながらも、担当者への信頼感や親しみやすさを大切にします。',
+        'ideal'  => '丁寧な説明と温かい対応を両立できるプロが最適です。「ハイブリッド型」のAgentと高い相性を発揮します。',
+        'bg'     => 'linear-gradient(135deg, #e65100, #f57c00)',
     ],
-    'balanced_e' => [
-        'label'   => '共感重視のパートナー型',
-        'emoji'   => '🤝',
-        'color'   => '#e65100',
-        'desc'    => 'あなたは人との関係を大切にするタイプ。保険を選ぶ際も「この人なら信頼できる」という感覚を重視します。長く付き合えるパートナーを探しています。',
-        'ideal'   => '温かみがあり、長期的に寄り添ってくれるプロが最適です。',
-        'tags'    => ['寄り添い', '親身'],
-        'bg'      => 'linear-gradient(135deg, #e65100, #f57c00)',
-    ],
-    'emotional' => [
-        'label'   => '情熱的なサポーター型',
-        'emoji'   => '💛',
-        'color'   => '#c62828',
-        'desc'    => 'あなたは感情と共感を重視するタイプ。「難しいことはよく分からないけど、いざという時に助けてほしい」という安心感を最も大切にします。',
-        'ideal'   => '事故や緊急時に真っ先に駆けつけてくれる、現場力の高いプロが最適です。',
-        'tags'    => ['現場力', '安心', '親身'],
-        'bg'      => 'linear-gradient(135deg, #c62828, #ef5350)',
+    'support_seeker' => [
+        'label'  => '寄り添い重視層',
+        'emoji'  => '💛',
+        'color'  => '#c62828',
+        'score_range' => '0〜39点',
+        'desc'   => 'あなたは感情・安心感を最も大切にする「寄り添い重視層」です。「難しいことはよく分からないけど、いざという時に助けてほしい」という想いが強く、人間的なつながりを重視します。',
+        'ideal'  => '事故や緊急時に真っ先に駆けつけてくれる現場力の高いプロが最適です。「支援先行型」のAgentと深い信頼関係を築けます。',
+        'bg'     => 'linear-gradient(135deg, #c62828, #ef5350)',
     ],
 ];
 
-// スコアに基づくタイプ判定
+// ── 0〜100スコアによるタイプ判定 ──────────────────
 function get_type_by_score(int $score): string {
-    if ($score >= 16) return 'logical';
-    if ($score >= 11) return 'balanced_l';
-    if ($score >= 6)  return 'balanced_e';
-    return 'emotional';
+    if ($score >= 70) return 'logic_seeker';
+    if ($score >= 40) return 'empathy_seeker';
+    return 'support_seeker';
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['answers'])) {
     $answers     = $_POST['answers'];
-    $total_score = 0;
+    $raw_score   = 0;
     foreach ($answers as $a) {
-        $total_score += (int)$a;
+        $raw_score += (int)$a;
     }
-    $total_score = max(0, min(20, $total_score));
+    // 20点満点 → 100点満点に変換（×5）
+    $total_score = max(0, min(100, $raw_score * 5));
     $type_key    = get_type_by_score($total_score);
 
     $_SESSION['diagnosis_type']  = $type_key;
     $_SESSION['diagnosis_score'] = $total_score;
     unset($_SESSION['diag_retry']); // 完了したので再診断フラグを解除
 
-    // ログイン中のユーザーなら diagnosis_type をDBに永続保存
+    // ログイン中のユーザーなら diagnosis_type と diagnosis_score をDBに永続保存
     if (
         isset($_SESSION['id'], $_SESSION['user_type']) &&
         $_SESSION['user_type'] === 'user'
     ) {
         $pdo  = db_conn();
         $stmt = $pdo->prepare(
-            "UPDATE users SET diagnosis_type=:dtype WHERE id=:id AND life_flg=0"
+            "UPDATE users SET diagnosis_type=:dtype, diagnosis_score=:dscore
+             WHERE id=:id AND life_flg=0"
         );
-        $stmt->bindValue(':dtype', $type_key,              PDO::PARAM_STR);
-        $stmt->bindValue(':id',    (int)$_SESSION['id'],   PDO::PARAM_INT);
+        $stmt->bindValue(':dtype',  $type_key,            PDO::PARAM_STR);
+        $stmt->bindValue(':dscore', $total_score,          PDO::PARAM_INT);
+        $stmt->bindValue(':id',     (int)$_SESSION['id'], PDO::PARAM_INT);
         $stmt->execute();
     }
 
@@ -108,7 +104,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['answers'])) {
 // diag_retry フラグが立っている場合はフォームを表示するため復元しない
 if (!$result_type && isset($_SESSION['diagnosis_type']) && empty($_SESSION['diag_retry'])) {
     $result_type = $_SESSION['diagnosis_type'];
-    $result_data = $types[$result_type];
+    if (isset($types[$result_type])) {
+        $result_data = $types[$result_type];
+    }
 }
 
 // ---------------------------------------------------
@@ -457,13 +455,17 @@ $questions = [
             <h3>あなたの特徴</h3>
             <p><?= h($result_data['desc']) ?></p>
 
+            <div style="font-size:0.82rem; color:#999; margin-bottom:16px;">
+                スコア：<?= $_SESSION['diagnosis_score'] ?? '' ?> 点 （<?= h($result_data['score_range']) ?>）
+            </div>
+
             <div class="ideal-box">
                 💡 <strong>あなたに最適なプロ：</strong><br>
                 <?= h($result_data['ideal']) ?>
             </div>
 
-            <a href="search.php?type=<?= h($result_type) ?>" class="cta-btn">
-                あなたに合うプロを探す →
+            <a href="search.php" class="cta-btn">
+                相性の良いプロを探す ✨ →
             </a>
         </div>
     </div>
