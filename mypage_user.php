@@ -51,8 +51,20 @@ $stmt->bindValue(':uid', $user_id, PDO::PARAM_INT);
 $stmt->execute();
 $unread_msg_count = (int)$stmt->fetchColumn();
 
-// 診断タイプ
-$diag_type  = $_SESSION['diagnosis_type']  ?? null;
+// 診断タイプ：DBを正として取得し、セッションに同期
+$stmt = $pdo->prepare("SELECT diagnosis_type FROM users WHERE id=:uid AND life_flg=0");
+$stmt->bindValue(':uid', $user_id, PDO::PARAM_INT);
+$stmt->execute();
+$db_diag_type = $stmt->fetchColumn();
+
+if (!empty($db_diag_type)) {
+    // DBに値があればそれを正として使用し、セッションにも同期
+    $diag_type = $db_diag_type;
+    $_SESSION['diagnosis_type'] = $db_diag_type;
+} else {
+    // DBが空ならセッションから復元（ログインしたまま診断した場合など）
+    $diag_type = $_SESSION['diagnosis_type'] ?? null;
+}
 $type_labels = [
     'logical'    => ['論理的ストラテジスト', '📊'],
     'balanced_l' => ['着実なプランナー',     '🗂️'],

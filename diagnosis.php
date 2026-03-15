@@ -12,6 +12,14 @@ if (isset($_GET['retry'])) {
     redirect('diagnosis.php');
 }
 
+// diagnosis_type カラムが未作成の場合に備えて自動追加（IF NOT EXISTS相当）
+try {
+    $pdo_init = db_conn();
+    $pdo_init->exec("ALTER TABLE users ADD COLUMN diagnosis_type VARCHAR(50) DEFAULT NULL");
+} catch (PDOException $e) {
+    // カラムが既に存在する場合は無視
+}
+
 // ---------------------------------------------------
 // POST：診断結果を計算してセッションに保存
 // ---------------------------------------------------
@@ -78,17 +86,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['answers'])) {
     $_SESSION['diagnosis_score'] = $total_score;
     unset($_SESSION['diag_retry']); // 完了したので再診断フラグを解除
 
-    // ログイン中のユーザーならDBにも永続保存（type_idカラム）
-    $type_id_map = ['logical' => 1, 'balanced_l' => 2, 'balanced_e' => 3, 'emotional' => 4];
+    // ログイン中のユーザーなら diagnosis_type をDBに永続保存
     if (
         isset($_SESSION['id'], $_SESSION['user_type']) &&
-        $_SESSION['user_type'] === 'user' &&
-        isset($type_id_map[$type_key])
+        $_SESSION['user_type'] === 'user'
     ) {
         $pdo  = db_conn();
-        $stmt = $pdo->prepare("UPDATE users SET type_id=:tid WHERE id=:id AND life_flg=0");
-        $stmt->bindValue(':tid', $type_id_map[$type_key], PDO::PARAM_INT);
-        $stmt->bindValue(':id',  (int)$_SESSION['id'],    PDO::PARAM_INT);
+        $stmt = $pdo->prepare(
+            "UPDATE users SET diagnosis_type=:dtype WHERE id=:id AND life_flg=0"
+        );
+        $stmt->bindValue(':dtype', $type_key,              PDO::PARAM_STR);
+        $stmt->bindValue(':id',    (int)$_SESSION['id'],   PDO::PARAM_INT);
         $stmt->execute();
     }
 

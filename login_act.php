@@ -97,6 +97,11 @@ if (password_verify($lpw, $val['lpw'])) {
     $_SESSION["id"]        = $val['id'];
     $_SESSION["user_type"] = $user_type;
 
+    // ユーザーのログイン時：DBの diagnosis_type をセッションに同期
+    if ($user_type === 'user' && !empty($val['diagnosis_type'])) {
+        $_SESSION['diagnosis_type'] = $val['diagnosis_type'];
+    }
+
     if ($user_type === 'agent') {
         redirect("mypage.php");
     } else {
