@@ -3,6 +3,16 @@ session_start();
 include("function.php");
 
 // ---------------------------------------------------
+// 再診断リクエスト：HTMLを出力する前にここで処理
+// diagnosis_type / diagnosis_score は消さず、
+// diag_retry フラグだけ立ててリダイレクト
+// ---------------------------------------------------
+if (isset($_GET['retry'])) {
+    $_SESSION['diag_retry'] = true;
+    redirect('diagnosis.php');
+}
+
+// ---------------------------------------------------
 // POST：診断結果を計算してセッションに保存
 // ---------------------------------------------------
 $result_type  = null;
@@ -66,13 +76,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['answers'])) {
 
     $_SESSION['diagnosis_type']  = $type_key;
     $_SESSION['diagnosis_score'] = $total_score;
+    unset($_SESSION['diag_retry']); // 完了したので再診断フラグを解除
+
+    // ログイン中のユーザーならDBにも永続保存（type_idカラム）
+    $type_id_map = ['logical' => 1, 'balanced_l' => 2, 'balanced_e' => 3, 'emotional' => 4];
+    if (
+        isset($_SESSION['id'], $_SESSION['user_type']) &&
+        $_SESSION['user_type'] === 'user' &&
+        isset($type_id_map[$type_key])
+    ) {
+        $pdo  = db_conn();
+        $stmt = $pdo->prepare("UPDATE users SET type_id=:tid WHERE id=:id AND life_flg=0");
+        $stmt->bindValue(':tid', $type_id_map[$type_key], PDO::PARAM_INT);
+        $stmt->bindValue(':id',  (int)$_SESSION['id'],    PDO::PARAM_INT);
+        $stmt->execute();
+    }
 
     $result_type = $type_key;
     $result_data = $types[$type_key];
 }
 
 // セッションから復元（再表示）
-if (!$result_type && isset($_SESSION['diagnosis_type'])) {
+// diag_retry フラグが立っている場合はフォームを表示するため復元しない
+if (!$result_type && isset($_SESSION['diagnosis_type']) && empty($_SESSION['diag_retry'])) {
     $result_type = $_SESSION['diagnosis_type'];
     $result_data = $types[$result_type];
 }
@@ -434,7 +460,7 @@ $questions = [
         </div>
     </div>
 
-    <a href="diagnosis.php?retry=1" class="retry-link" onclick="sessionRemoveDiagnosis(); return true;">
+    <a href="diagnosis.php?retry=1" class="retry-link">
         もう一度診断する
     </a>
 
@@ -496,15 +522,6 @@ function updateProgress(idx) {
 }
 </script>
 
-<?php
-// retry パラメータがあればセッションをクリアしてリダイレクト
-if (isset($_GET['retry'])) {
-    unset($_SESSION['diagnosis_type']);
-    unset($_SESSION['diagnosis_score']);
-    header('Location: diagnosis.php');
-    exit();
-}
-?>
 
 </body>
 </html>
