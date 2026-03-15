@@ -15,6 +15,11 @@ if(
     exit('ParamError: 入力データが足りません');
 }
 
+// 利用規約への同意チェック
+if (empty($_POST['agree_terms'])) {
+    exit('利用規約とプライバシーポリシーへの同意が必要です。ブラウザの戻るボタンでお戻りください。');
+}
+
 $name      = $_POST["name"];
 $lid       = $_POST["lid"];
 $lpw       = $_POST["lpw"];

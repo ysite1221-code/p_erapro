@@ -80,6 +80,26 @@ $stmt->execute();
 
 $new_id = (int)$pdo->lastInsertId();
 
+// ── メール通知 ──────────────────────────────────────────────────
+// 受信者テーブルを判定（sender_type=1→user送信→agentsへ通知, type=2→agent送信→usersへ通知）
+$recv_table = ($sender_type === 1) ? 'agents' : 'users';
+$stmt2 = $pdo->prepare("SELECT lid, name FROM {$recv_table} WHERE id=:rid AND life_flg=0");
+$stmt2->bindValue(':rid', $receiver_id, PDO::PARAM_INT);
+$stmt2->execute();
+$recv = $stmt2->fetch(PDO::FETCH_ASSOC);
+
+if ($recv) {
+    $mail_subject = '【ERAPRO】新着メッセージが届きました';
+    $mail_body  = $recv['name'] . " 様\n\n";
+    $mail_body .= "ERAPROに新しいメッセージが届いています。\n\n";
+    $mail_body .= "▼マイページからご確認ください\n";
+    $mail_body .= "http://localhost/sotsu/messages_list.php\n\n";
+    $mail_body .= "--\nEKAPRO運営事務局\n";
+    send_mail($recv['lid'], $mail_subject, $mail_body);
+    // ※送信失敗はサイレント扱い（メッセージ保存の成功レスポンスはそのまま返す）
+}
+// ──────────────────────────────────────────────────────────────
+
 echo json_encode([
     'result'  => 'ok',
     'message' => [

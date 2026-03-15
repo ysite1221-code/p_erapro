@@ -42,8 +42,17 @@
             <input type="submit" value="ログインする" class="btn-login">
         </form>
         
+        <?php if (!empty($_GET['reset']) && $_GET['reset'] === 'success'): ?>
+        <p style="background:#e8f5e9; color:#2e7d32; border:1px solid #a5d6a7;
+                  padding:12px 16px; border-radius:6px; font-size:0.88rem; margin-top:16px;">
+            パスワードを変更しました。新しいパスワードでログインしてください。
+        </p>
+        <?php endif; ?>
+
         <div style="margin-top:20px;">
             <a href="signup_user.php" style="color:#004e92; font-size:0.9rem;">新規登録はこちら</a>
+            <span style="color:#ccc; margin:0 8px;">|</span>
+            <a href="password_reset.php?user_type=user" style="color:#999; font-size:0.85rem;">パスワードを忘れた方</a>
         </div>
     </div>
 </body>

@@ -63,6 +63,19 @@
 
             <input type="hidden" name="user_type" value="user">
 
+            <div class="form-group" style="margin-bottom:24px;">
+                <label style="display:flex; align-items:flex-start; gap:10px; font-weight:normal; cursor:pointer;">
+                    <input type="checkbox" name="agree_terms" value="1" required
+                           style="width:18px; height:18px; margin-top:2px; flex-shrink:0; cursor:pointer;">
+                    <span style="font-size:0.88rem; color:#555; line-height:1.6;">
+                        <a href="terms.php" target="_blank" style="color:#004e92; font-weight:bold;">利用規約</a>
+                        および
+                        <a href="privacy.php" target="_blank" style="color:#004e92; font-weight:bold;">プライバシーポリシー</a>
+                        に同意する（必須）
+                    </span>
+                </label>
+            </div>
+
             <input type="submit" value="登録してプロを探す" class="btn-submit">
         </form>
 

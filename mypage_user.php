@@ -414,6 +414,21 @@ $type_labels = [
         <?php endif; ?>
     </div>
 
+    <!-- 退会セクション -->
+    <div style="margin-top:48px; padding-top:32px; border-top:1px solid #e0e0e0; text-align:center;">
+        <p style="font-size:0.85rem; color:#aaa; margin-bottom:12px;">アカウントを削除する場合はこちら</p>
+        <form action="withdraw_act.php" method="post"
+              onsubmit="return confirm('本当に退会しますか？\n退会するとアカウント情報が削除され、元に戻せません。');">
+            <button type="submit"
+                    style="padding:10px 28px; background:#fff; color:#dc3545; border:1px solid #dc3545;
+                           border-radius:6px; font-size:0.88rem; cursor:pointer; transition:all 0.2s;"
+                    onmouseover="this.style.background='#dc3545';this.style.color='#fff';"
+                    onmouseout="this.style.background='#fff';this.style.color='#dc3545';">
+                退会する
+            </button>
+        </form>
+    </div>
+
 </div>
 
 <script>

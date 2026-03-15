@@ -127,6 +127,18 @@ $completion_pct = (int)round($filled / count($completion_items) * 100);
                 </a></li>
             </ul>
             <a href="profile.php?id=<?= $id ?>" target="_blank" class="sidebar-public-btn">自分の公開ページを見る</a>
+
+            <form action="withdraw_act.php" method="post" style="margin-top:16px; text-align:center;"
+                  onsubmit="return confirm('本当に退会しますか？\n退会するとアカウント情報が削除され、元に戻せません。');">
+                <button type="submit"
+                        style="width:100%; padding:9px; background:transparent; color:#dc3545;
+                               border:1px solid #dc3545; border-radius:4px; font-size:0.82rem;
+                               cursor:pointer; transition:all 0.2s;"
+                        onmouseover="this.style.background='#dc3545';this.style.color='#fff';"
+                        onmouseout="this.style.background='transparent';this.style.color='#dc3545';">
+                    退会する
+                </button>
+            </form>
         </aside>
 
         <main class="main-content">
