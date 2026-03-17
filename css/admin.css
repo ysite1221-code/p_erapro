@@ -191,6 +191,7 @@ a { text-decoration: none; color: inherit; transition: color 0.2s; }
 .kpi-card.today   { border-top-color: #2e7d32; }
 .kpi-card.fav     { border-top-color: #e91e63; }
 .kpi-card.myagent { border-top-color: #f59e0b; }
+.kpi-card.review  { border-top-color: #f4c430; }
 .kpi-label {
     font-size: 0.78rem;
     color: #999;

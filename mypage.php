@@ -68,6 +68,39 @@ $stmt->bindValue(':id', $id, PDO::PARAM_INT);
 $stmt->execute();
 $myagent_count = (int)$stmt->fetchColumn();
 
+// ── reviews テーブルがなければ作成 ──
+$pdo->exec("CREATE TABLE IF NOT EXISTS reviews (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    agent_id   INT NOT NULL,
+    user_id    INT NOT NULL,
+    rating     TINYINT NOT NULL,
+    comment    TEXT DEFAULT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_user_agent (user_id, agent_id),
+    INDEX idx_agent (agent_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+// ── KPI: クチコミ平均評価・件数 ──
+$stmt = $pdo->prepare("SELECT ROUND(AVG(rating),1) AS avg_rating, COUNT(*) AS review_count FROM reviews WHERE agent_id=:id");
+$stmt->bindValue(':id', $id, PDO::PARAM_INT);
+$stmt->execute();
+$review_kpi   = $stmt->fetch(PDO::FETCH_ASSOC);
+$avg_rating   = ($review_kpi && $review_kpi['review_count'] > 0) ? $review_kpi['avg_rating'] : null;
+$review_count = $review_kpi ? (int)$review_kpi['review_count'] : 0;
+
+// ── 直近のクチコミ（5件） ──
+$stmt = $pdo->prepare(
+    "SELECT r.rating, r.comment, r.updated_at, u.name AS user_name
+     FROM reviews r
+     JOIN users u ON r.user_id = u.id
+     WHERE r.agent_id = :id
+     ORDER BY r.updated_at DESC LIMIT 5"
+);
+$stmt->bindValue(':id', $id, PDO::PARAM_INT);
+$stmt->execute();
+$recent_reviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
 // ── 最近の閲覧履歴（直近10件、時刻のみ） ──
 $stmt = $pdo->prepare(
     "SELECT viewed_at, viewer_ip
@@ -171,6 +204,16 @@ $completion_pct = (int)round($filled / count($completion_items) * 100);
                     <div class="kpi-label">⭐ My Agent 登録</div>
                     <div class="kpi-value"><?= number_format($myagent_count) ?><span class="kpi-unit"> 人</span></div>
                 </div>
+                <div class="kpi-card review">
+                    <div class="kpi-label">💬 クチコミ平均評価</div>
+                    <?php if ($avg_rating !== null): ?>
+                    <div class="kpi-value"><?= number_format((float)$avg_rating, 1) ?><span class="kpi-unit"> / 5.0</span></div>
+                    <div style="font-size:0.78rem; color:#bbb; margin-top:8px;"><?= $review_count ?>件のクチコミ</div>
+                    <?php else: ?>
+                    <div class="kpi-value" style="font-size:1.4rem; color:#ccc;">未投稿</div>
+                    <div style="font-size:0.78rem; color:#ccc; margin-top:8px;">クチコミを集めましょう</div>
+                    <?php endif; ?>
+                </div>
             </div>
 
             <!-- プロフィール完成度 -->
@@ -203,6 +246,32 @@ $completion_pct = (int)round($filled / count($completion_items) * 100);
                         <span class="act-icon">👤</span>
                         <span>プロフィールが閲覧されました</span>
                         <span class="act-time"><?= h(date('m/d H:i', strtotime($v['viewed_at']))) ?></span>
+                    </li>
+                    <?php endforeach; ?>
+                </ul>
+                <?php endif; ?>
+            </div>
+
+            <!-- クチコミ・評価 -->
+            <div class="activity-wrap">
+                <h3>💬 最近のクチコミ・評価</h3>
+                <?php if (empty($recent_reviews)): ?>
+                    <p style="color:#999; font-size:0.9rem;">まだクチコミが投稿されていません。ユーザーにフィードバックをリクエストしてみましょう！</p>
+                <?php else: ?>
+                <ul class="activity-list">
+                    <?php foreach ($recent_reviews as $rv): ?>
+                    <li>
+                        <span class="act-icon">⭐</span>
+                        <div style="flex:1; min-width:0;">
+                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                                <span style="font-weight:700; color:#e6a800; letter-spacing:1px;"><?= str_repeat('★', (int)$rv['rating']) . str_repeat('☆', 5 - (int)$rv['rating']) ?></span>
+                                <span style="font-size:0.8rem; color:#888;"><?= h($rv['user_name']) ?></span>
+                            </div>
+                            <?php if (!empty($rv['comment'])): ?>
+                            <p style="margin:0; font-size:0.82rem; color:#666; line-height:1.6;"><?= h(mb_substr($rv['comment'], 0, 80)) ?><?= mb_strlen($rv['comment']) > 80 ? '…' : '' ?></p>
+                            <?php endif; ?>
+                        </div>
+                        <span class="act-time"><?= h(date('m/d', strtotime($rv['updated_at']))) ?></span>
                     </li>
                     <?php endforeach; ?>
                 </ul>

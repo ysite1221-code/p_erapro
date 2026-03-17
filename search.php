@@ -8,6 +8,19 @@ try {
     $pdo->exec("ALTER TABLE agents ADD COLUMN area_detail VARCHAR(255) DEFAULT NULL");
 } catch (PDOException $e) {}
 
+// reviewsテーブルがなければ作成
+$pdo->exec("CREATE TABLE IF NOT EXISTS reviews (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    agent_id   INT NOT NULL,
+    user_id    INT NOT NULL,
+    rating     TINYINT NOT NULL,
+    comment    TEXT DEFAULT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_user_agent (user_id, agent_id),
+    INDEX idx_agent (agent_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
 $prefectures = ['北海道','青森県','岩手県','宮城県','秋田県','山形県','福島県',
     '茨城県','栃木県','群馬県','埼玉県','千葉県','東京都','神奈川県',
     '新潟県','富山県','石川県','福井県','山梨県','長野県',
@@ -51,15 +64,15 @@ if (isset($_SESSION['id'], $_SESSION['user_type']) && $_SESSION['user_type'] ===
 }
 
 // 2. SQLの組み立て
-$sql    = "SELECT * FROM agents WHERE life_flg=0";
+$sql    = "SELECT a.*, ROUND(AVG(r.rating),1) AS avg_rating, COUNT(r.id) AS review_count FROM agents a LEFT JOIN reviews r ON r.agent_id=a.id WHERE a.life_flg=0";
 $params = [];
 
 if (!empty($area)) {
-    $sql .= " AND area = :area";
+    $sql .= " AND a.area = :area";
     $params[':area'] = $area;
 }
 if (!empty($tag)) {
-    $sql .= " AND (tags LIKE :tag OR title LIKE :tag OR story LIKE :tag OR area_detail LIKE :tag)";
+    $sql .= " AND (a.tags LIKE :tag OR a.title LIKE :tag OR a.story LIKE :tag OR a.area_detail LIKE :tag)";
     $params[':tag'] = '%' . $tag . '%';
 }
 
@@ -71,19 +84,19 @@ if (!empty($user_interests)) {
     $int_cases = [];
     foreach ($user_interests as $i => $kw) {
         $key = ':iord' . $i;
-        $int_cases[] = "tags LIKE $key";
+        $int_cases[] = "a.tags LIKE $key";
         $params[$key] = '%' . $kw . '%';
     }
     $order_parts[] = "CASE WHEN (" . implode(' OR ', $int_cases) . ") THEN 0 ELSE 1 END ASC";
 }
 
 if ($user_score !== null) {
-    $order_parts[] = "ABS(COALESCE(diagnosis_score, 50) - :user_score) ASC";
+    $order_parts[] = "ABS(COALESCE(a.diagnosis_score, 50) - :user_score) ASC";
     $params[':user_score'] = $user_score;
 }
 
-$order_parts[] = "id DESC";
-$sql .= " ORDER BY " . implode(', ', $order_parts);
+$order_parts[] = "a.id DESC";
+$sql .= " GROUP BY a.id ORDER BY " . implode(', ', $order_parts);
 
 // 3. 実行
 $stmt = $pdo->prepare($sql);
@@ -133,6 +146,13 @@ if ($status == false) {
             $compat_html = '<span class="compat-badge">✨ 相性 ' . $compat . '%</span>';
         }
 
+        // クチコミ評価
+        if (!empty($r['avg_rating']) && (int)$r['review_count'] > 0) {
+            $rating_html = '<div class="card-rating">★ ' . number_format((float)$r['avg_rating'], 1) . ' <span class="rating-count">(' . (int)$r['review_count'] . '件)</span></div>';
+        } else {
+            $rating_html = '<div class="card-rating card-rating-empty">クチコミ未投稿</div>';
+        }
+
         // エリア表示（都道府県 + 市区町村の先頭1件）
         $area_chip = $r['area'] ?: '未設定';
         if (!empty($r['area_detail'])) {
@@ -150,6 +170,7 @@ if ($status == false) {
         $view .= '<div class="card-body">';
         if ($interest_badge_html) { $view .= $interest_badge_html; }
         if ($compat_html) { $view .= $compat_html; }
+        $view .= $rating_html;
         $view .= '<p class="card-catch">' . h(mb_substr($r["title"] ?? '', 0, 45)) . '</p>';
         $view .= '<h3 class="card-name">' . h($r["name"]) . '</h3>';
         if ($tags_html) {
@@ -357,6 +378,22 @@ if ($status == false) {
             padding: 3px 10px;
             border-radius: 12px;
             margin-bottom: 8px;
+        }
+
+        /* ===== クチコミ評価 ===== */
+        .card-rating {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #e6a800;
+            margin-bottom: 6px;
+        }
+        .card-rating.card-rating-empty {
+            color: #ccc;
+            font-weight: 400;
+        }
+        .rating-count {
+            color: #999;
+            font-weight: 400;
         }
 
         /* ===== 空状態 ===== */

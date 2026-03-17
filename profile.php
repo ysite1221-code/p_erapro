@@ -95,7 +95,7 @@ try {
 }
 
 $stmt = $pdo->prepare(
-    "SELECT r.rating, r.comment, r.updated_at, u.name AS user_name
+    "SELECT r.id, r.user_id, r.rating, r.comment, r.updated_at, u.name AS user_name
      FROM reviews r
      JOIN users u ON r.user_id = u.id
      WHERE r.agent_id = :aid
@@ -336,6 +336,19 @@ $tags = array_filter(array_map('trim', explode(',', $row['tags'] ?? '')));
             transition: background 0.2s;
         }
         .btn-review-post:hover { background: #003a70; color: #fff; }
+        .btn-review-edit {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 6px 16px;
+            background: #f5f7ff;
+            color: #004e92;
+            border: 1px solid #c5d3f0;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .btn-review-edit:hover { background: #e8eeff; color: #003a70; }
 
         /* 戻るリンク */
         .back-link {
@@ -492,6 +505,9 @@ $tags = array_filter(array_map('trim', explode(',', $row['tags'] ?? '')));
                 <?php if (!empty($rv['comment'])): ?>
                 <p class="review-item-comment"><?= h($rv['comment']) ?></p>
                 <?php endif; ?>
+                <?php if ($is_user && (int)$rv['user_id'] === (int)$_SESSION['id']): ?>
+                <a href="review_post.php?agent_id=<?= $agent_id ?>" class="btn-review-edit">✏️ 編集する</a>
+                <?php endif; ?>
             </li>
             <?php endforeach; ?>
         </ul>
@@ -499,9 +515,9 @@ $tags = array_filter(array_map('trim', explode(',', $row['tags'] ?? '')));
         <p class="review-empty">まだクチコミはありません。</p>
         <?php endif; ?>
 
-        <?php if ($is_user): ?>
+        <?php if ($is_user && !$user_reviewed): ?>
         <a href="review_post.php?agent_id=<?= $agent_id ?>" class="btn-review-post">
-            <?= $user_reviewed ? '★ クチコミを編集する' : '★ クチコミを投稿する' ?>
+            ★ クチコミを投稿する
         </a>
         <?php endif; ?>
 
