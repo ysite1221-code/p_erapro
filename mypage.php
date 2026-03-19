@@ -128,8 +128,8 @@ foreach ($completion_items as $field => $_) {
 }
 $completion_pct = (int)round($filled / count($completion_items) * 100);
 
-// 公開条件チェック（写真・キャッチコピー・My Storyがすべて入力済みで公開状態）
-$is_public = !empty($row['profile_img']) && !empty($row['title']) && !empty($row['story']);
+// 公開条件チェック（キャッチコピー・My Storyがすべて入力済みで公開状態）
+$is_public = !empty($row['title']) && !empty($row['story']);
 ?>
 <!DOCTYPE html>
 <html lang="ja">
