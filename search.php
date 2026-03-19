@@ -115,8 +115,8 @@ if ($status == false) {
 } else {
     foreach ($rows as $r) {
         // 画像なしの場合は picsum.photos で一貫した写真を使用
-        $img = $r['profile_img']
-            ? 'uploads/' . $r['profile_img']
+        $img = !empty($r['profile_img'])
+            ? (strpos($r['profile_img'], 'http') === 0 ? $r['profile_img'] : 'uploads/' . $r['profile_img'])
             : 'https://picsum.photos/seed/agent' . $r['id'] . '/600/360';
 
         $tags_html = '';

@@ -76,11 +76,11 @@ $results[] = upsert($pdo, 'admins', 'admin_test',
 $agent_sql =
     "INSERT INTO agents
        (name, lid, lpw, area, area_detail, tags, title, story, philosophy,
-        diagnosis_score, diagnosis_type, verification_status,
+        profile_img, diagnosis_score, diagnosis_type, verification_status,
         life_flg, email_notification_flg, email_verified_at, indate)
      VALUES
        (:name, :lid, :lpw, :area, :adetail, :tags, :title, :story, :philosophy,
-        :dscore, :dtype, :vstatus,
+        :profile_img, :dscore, :dtype, :vstatus,
         0, 1, NOW(), NOW())";
 
 // ---------- score=20 | 支援先行型 ----------
@@ -89,6 +89,7 @@ $results[] = upsert($pdo, 'agents', 'agent_hit', $agent_sql, [
     ':name'    => '検索ヒット太郎',
     ':lid'     => 'agent_hit',
     ':lpw'     => $lpw,
+    ':profile_img' => 'https://picsum.photos/seed/agent_hit/600/400',
     ':area'    => '東京都',
     ':adetail' => '世田谷区, 渋谷区, 目黒区',
     ':tags'    => '子育て,安心,ライフプラン',
@@ -108,6 +109,7 @@ $results[] = upsert($pdo, 'agents', 'agent_score10', $agent_sql, [
     ':name'    => '寄り添い花子',
     ':lid'     => 'agent_score10',
     ':lpw'     => $lpw,
+    ':profile_img' => 'https://picsum.photos/seed/agent_score10/600/400',
     ':area'    => '福岡県',
     ':adetail' => '福岡市中央区, 福岡市南区, 春日市',
     ':tags'    => '相続,女性向け,介護',
@@ -128,6 +130,7 @@ $results[] = upsert($pdo, 'agents', 'agent_score35', $agent_sql, [
     ':name'    => '安心サポート三郎',
     ':lid'     => 'agent_score35',
     ':lpw'     => $lpw,
+    ':profile_img' => 'https://picsum.photos/seed/agent_score35/600/400',
     ':area'    => '東京都',
     ':adetail' => '練馬区, 板橋区, 豊島区',
     ':tags'    => '高齢者,医療,安心',
@@ -146,6 +149,7 @@ $results[] = upsert($pdo, 'agents', 'agent_score45', $agent_sql, [
     ':name'    => 'バランス設計四郎',
     ':lid'     => 'agent_score45',
     ':lpw'     => $lpw,
+    ':profile_img' => 'https://picsum.photos/seed/agent_score45/600/400',
     ':area'    => '大阪府',
     ':adetail' => '大阪市北区, 大阪市中央区, 梅田周辺',
     ':tags'    => '経営者,中小企業,バランス型',
@@ -164,6 +168,7 @@ $results[] = upsert($pdo, 'agents', 'agent_score55', $agent_sql, [
     ':name'    => '総合提案五郎',
     ':lid'     => 'agent_score55',
     ':lpw'     => $lpw,
+    ':profile_img' => 'https://picsum.photos/seed/agent_score55/600/400',
     ':area'    => '東京都',
     ':adetail' => '新宿区, 渋谷区, 港区',
     ':tags'    => '資産形成,NISA,バランス型',
@@ -182,6 +187,7 @@ $results[] = upsert($pdo, 'agents', 'agent_chat', $agent_sql, [
     ':name'    => 'チャット待機次郎',
     ':lid'     => 'agent_chat',
     ':lpw'     => $lpw,
+    ':profile_img' => 'https://picsum.photos/seed/agent_chat/600/400',
     ':area'    => '大阪府',
     ':adetail' => '大阪市全域, 堺市, 東大阪市',
     ':tags'    => '現場力,スピード対応,損保',
@@ -202,6 +208,7 @@ $results[] = upsert($pdo, 'agents', 'agent_score70', $agent_sql, [
     ':name'    => 'データ活用六郎',
     ':lid'     => 'agent_score70',
     ':lpw'     => $lpw,
+    ':profile_img' => 'https://picsum.photos/seed/agent_score70/600/400',
     ':area'    => '福岡県',
     ':adetail' => '福岡市博多区, 天神周辺, 福岡市東区',
     ':tags'    => '損保,データ重視,論理派',
@@ -220,6 +227,7 @@ $results[] = upsert($pdo, 'agents', 'agent_score90', $agent_sql, [
     ':name'    => '戦略立案七郎',
     ':lid'     => 'agent_score90',
     ':lpw'     => $lpw,
+    ':profile_img' => 'https://picsum.photos/seed/agent_score90/600/400',
     ':area'    => '東京都',
     ':adetail' => '千代田区, 港区, 中央区',
     ':tags'    => '法人,税務,戦略的',

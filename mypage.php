@@ -15,7 +15,7 @@ $row = $stmt->fetch();
 
 // 画像パス
 $img = !empty($row['profile_img'])
-    ? 'uploads/' . $row['profile_img']
+    ? (strpos($row['profile_img'], 'http') === 0 ? $row['profile_img'] : 'uploads/' . $row['profile_img'])
     : 'https://placehold.co/150x150/e0e0e0/888?text=No+Img';
 
 // ── profile_views テーブルがなければ作成 ──

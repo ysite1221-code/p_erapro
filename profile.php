@@ -124,8 +124,8 @@ if ($is_user) {
 $review_posted = isset($_GET['review']) && $_GET['review'] === '1';
 
 // 画像処理
-$img = $row['profile_img']
-    ? 'uploads/' . $row['profile_img']
+$img = !empty($row['profile_img'])
+    ? (strpos($row['profile_img'], 'http') === 0 ? $row['profile_img'] : 'uploads/' . $row['profile_img'])
     : 'https://picsum.photos/seed/agent' . $agent_id . '/1200/480';
 
 // タグ処理
