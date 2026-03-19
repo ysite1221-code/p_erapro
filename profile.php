@@ -10,7 +10,7 @@ if ($agent_id <= 0) {
 $pdo = db_conn();
 
 // Agent情報
-$stmt = $pdo->prepare("SELECT * FROM agents WHERE id=:id AND life_flg=0");
+$stmt = $pdo->prepare("SELECT * FROM agents WHERE id=:id AND life_flg=0 AND verification_status=2");
 $stmt->bindValue(':id', $agent_id, PDO::PARAM_INT);
 $stmt->execute();
 $row = $stmt->fetch();

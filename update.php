@@ -1,7 +1,8 @@
 <?php
 session_start();
 include("function.php");
-loginCheck();
+loginCheck('agent');
+check_agent_approval();
 
 // 1. POSTデータ取得
 $name       = $_POST["name"];

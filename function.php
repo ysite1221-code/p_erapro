@@ -67,6 +67,19 @@ function loginCheck($type = '') {
     $_SESSION['chk_ssid'] = session_id();
 }
 
+// KYC承認チェック関数（未承認AgentはKYCページへ強制リダイレクト）
+function check_agent_approval() {
+    if (isset($_SESSION['user_type']) && $_SESSION['user_type'] === 'agent') {
+        $pdo = db_conn();
+        $stmt = $pdo->prepare("SELECT verification_status FROM agents WHERE id=:id");
+        $stmt->bindValue(':id', (int)$_SESSION['id'], PDO::PARAM_INT);
+        $stmt->execute();
+        if ((int)$stmt->fetchColumn() !== 2) {
+            redirect('agent_kyc.php');
+        }
+    }
+}
+
 // SendGrid メール送信関数（cURL版）
 function send_mail($to, $subject, $body) {
     $data = [

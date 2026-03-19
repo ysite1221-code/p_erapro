@@ -64,7 +64,7 @@ if (isset($_SESSION['id'], $_SESSION['user_type']) && $_SESSION['user_type'] ===
 }
 
 // 2. SQLの組み立て
-$sql    = "SELECT a.*, ROUND(AVG(r.rating),1) AS avg_rating, COUNT(r.id) AS review_count FROM agents a LEFT JOIN reviews r ON r.agent_id=a.id WHERE a.life_flg=0";
+$sql    = "SELECT a.*, ROUND(AVG(r.rating),1) AS avg_rating, COUNT(r.id) AS review_count FROM agents a LEFT JOIN reviews r ON r.agent_id=a.id WHERE a.life_flg=0 AND a.verification_status=2";
 $params = [];
 
 if (!empty($area)) {

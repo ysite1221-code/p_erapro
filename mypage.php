@@ -2,6 +2,7 @@
 session_start();
 include("function.php");
 loginCheck('agent');
+check_agent_approval();
 
 $id  = (int)$_SESSION["id"];
 $pdo = db_conn();

@@ -7,7 +7,7 @@ $id  = $_SESSION["id"];
 $pdo = db_conn();
 
 // Agent情報取得
-$stmt = $pdo->prepare("SELECT verification_status, name, lid FROM agents WHERE id=:id AND life_flg=0");
+$stmt = $pdo->prepare("SELECT verification_status, name, lid, email_notification_flg FROM agents WHERE id=:id AND life_flg=0");
 $stmt->bindValue(':id', $id, PDO::PARAM_INT);
 $stmt->execute();
 $agent = $stmt->fetch();
@@ -67,11 +67,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $vstatus === 0) {
                 $vstatus = 1;
                 $success = true;
 
-                // 管理者へ通知メール（任意）
+                // Agent本人への受付完了メール
+                $agent_mail_body  = $agent['name'] . " 様\n\n";
+                $agent_mail_body .= "本人確認書類を受け付けました。\n";
+                $agent_mail_body .= "通常1〜3営業日以内に審査結果をメールでお知らせします。\n";
+                $agent_mail_body .= "審査完了までしばらくお待ちください。\n\n";
+                $agent_mail_body .= "--------------------------------------------------\n";
+                $agent_mail_body .= "ERAPRO運営事務局\n";
+                $agent_mail_body .= "https://erapro.jp/";
+                send_mail($agent['lid'], '【ERAPRO】本人確認書類を受け付けました', $agent_mail_body);
+
+                // 管理者への通知メール
                 send_mail(
                     MAIL_FROM_EMAIL,
                     '【ERAPRO】本人確認書類が提出されました',
-                    h($agent['name']) . ' 様より本人確認書類が提出されました。管理画面からご確認ください。'
+                    $agent['name'] . ' 様より本人確認書類が提出されました。管理画面からご確認ください。'
                 );
             } else {
                 $error = 'アップロードに失敗しました。再度お試しください。';
