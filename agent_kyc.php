@@ -262,9 +262,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $vstatus === 0) {
             <p style="color:#666; line-height:1.8;">
                 ご提出いただきありがとうございます。<br>
                 通常1〜3営業日以内に審査結果をメールでお知らせします。<br>
-                審査完了までしばらくお待ちください。
+                審査完了まで、ERAPROのトップページ等をご覧になりながら今しばらくお待ちください。
             </p>
-            <a href="mypage.php" class="dashboard-link">ダッシュボードへ</a>
+            <a href="index.php" class="dashboard-link">ERAPROトップページへ戻る</a>
+            <a href="logout.php" style="display:block; margin-top:16px; color:#999; font-size:0.85rem;">ログアウト</a>
         </div>
 
     <?php elseif ($vstatus === 2): ?>
@@ -308,6 +309,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $vstatus === 0) {
             </div>
             <button type="submit" class="btn-submit" id="submitBtn" disabled>再提出する</button>
         </form>
+        <a href="logout.php" style="display:block; margin-top:20px; text-align:center; color:#999; font-size:0.85rem;">ログアウト</a>
 
     <?php endif; ?>
 
