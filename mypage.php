@@ -127,6 +127,9 @@ foreach ($completion_items as $field => $_) {
     if (!empty($row[$field])) $filled++;
 }
 $completion_pct = (int)round($filled / count($completion_items) * 100);
+
+// 公開条件チェック（写真・キャッチコピー・My Storyがすべて入力済みで公開状態）
+$is_public = !empty($row['profile_img']) && !empty($row['title']) && !empty($row['story']);
 ?>
 <!DOCTYPE html>
 <html lang="ja">
@@ -179,11 +182,17 @@ $completion_pct = (int)round($filled / count($completion_items) * 100);
 
             <h2>活動サマリー</h2>
 
-            <?php if ($completion_pct < 100): ?>
+            <?php if (!$is_public): ?>
+            <div class="alert-box" style="background:#fff0f0; border-left-color:#dc3545;">
+                <strong style="color:#dc3545;">⚠️ プロフィールが未完成のため、現在ユーザーの検索画面には【非公開】となっています（<?= $completion_pct ?>%）</strong><br>
+                写真・キャッチコピー・My Storyを入力して、プロフィールを公開状態にしましょう！<br>
+                <a href="edit.php" style="color:#dc3545; font-weight:bold;">→ 今すぐ編集して公開する</a>
+            </div>
+            <?php elseif ($completion_pct < 100): ?>
             <div class="alert-box">
-                <strong>⚠️ プロフィールが未完成です（<?= $completion_pct ?>%）</strong><br>
-                写真やストーリーを充実させることで、マッチング率が大幅に向上します。<br>
-                <a href="edit.php" style="color:#004e92; font-weight:bold;">→ 今すぐ編集する</a>
+                <strong>📝 プロフィールをさらに充実させましょう（<?= $completion_pct ?>%）</strong><br>
+                活動エリア・タグ・Philosophyを追加すると、マッチング率がさらに向上します。<br>
+                <a href="edit.php" style="color:#004e92; font-weight:bold;">→ プロフィールを編集する</a>
             </div>
             <?php endif; ?>
 
