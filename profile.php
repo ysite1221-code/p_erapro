@@ -80,13 +80,24 @@ if (!$viewer_is_agent) {
         id        INT AUTO_INCREMENT PRIMARY KEY,
         agent_id  INT NOT NULL,
         viewer_ip VARCHAR(45) DEFAULT NULL,
+        user_id   INT DEFAULT NULL,
         viewed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_agent_date (agent_id, viewed_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $ip = $_SERVER['REMOTE_ADDR'] ?? null;
-    $sv = $pdo->prepare("INSERT INTO profile_views (agent_id, viewer_ip, viewed_at) VALUES (:aid, :ip, NOW())");
+    // 既存テーブルへの user_id カラム追加（既存の場合は無視）
+    try {
+        $pdo->exec("ALTER TABLE profile_views ADD COLUMN user_id INT DEFAULT NULL");
+    } catch (PDOException $e) {}
+
+    $ip       = $_SERVER['REMOTE_ADDR'] ?? null;
+    $view_uid = $is_user ? (int)$_SESSION['id'] : null;
+    $sv = $pdo->prepare(
+        "INSERT INTO profile_views (agent_id, viewer_ip, user_id, viewed_at)
+         VALUES (:aid, :ip, :uid, NOW())"
+    );
     $sv->bindValue(':aid', $agent_id, PDO::PARAM_INT);
     $sv->bindValue(':ip',  $ip,       PDO::PARAM_STR);
+    $sv->bindValue(':uid', $view_uid, $view_uid !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
     $sv->execute();
 }
 

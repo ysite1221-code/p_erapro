@@ -140,6 +140,66 @@ $unread_count = (int)$stmt->fetchColumn();
 $fav_diff     = $this_fav - $last_fav;
 $myagent_diff = $this_myagent - $last_myagent;
 
+// ── 属性分析（user_id カラムが未追加の場合は空で続行） ──
+$area_labels         = [];
+$area_data           = [];
+$diag_labels         = [];
+$diag_data           = [];
+$logged_viewer_count = 0;
+
+try {
+    // エリア別閲覧割合（過去30日・ログインユーザーのみ）
+    $stmt = $pdo->prepare(
+        "SELECT COALESCE(NULLIF(TRIM(u.area),''), '未設定') AS label, COUNT(*) AS cnt
+         FROM profile_views pv
+         LEFT JOIN users u ON pv.user_id = u.id
+         WHERE pv.agent_id = :id
+           AND pv.user_id IS NOT NULL
+           AND pv.viewed_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+         GROUP BY u.area
+         ORDER BY cnt DESC
+         LIMIT 8"
+    );
+    $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+    $stmt->execute();
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $area_labels[] = $r['label'];
+        $area_data[]   = (int)$r['cnt'];
+    }
+
+    // 診断タイプ別閲覧割合（過去30日・ログインユーザーのみ）
+    $stmt = $pdo->prepare(
+        "SELECT COALESCE(NULLIF(TRIM(u.diagnosis_type),''), '未設定') AS label, COUNT(*) AS cnt
+         FROM profile_views pv
+         LEFT JOIN users u ON pv.user_id = u.id
+         WHERE pv.agent_id = :id
+           AND pv.user_id IS NOT NULL
+           AND pv.viewed_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+         GROUP BY u.diagnosis_type
+         ORDER BY cnt DESC
+         LIMIT 8"
+    );
+    $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+    $stmt->execute();
+    foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $diag_labels[] = $r['label'];
+        $diag_data[]   = (int)$r['cnt'];
+    }
+
+    // ログインユーザー閲覧者数（ユニーク、過去30日）
+    $stmt = $pdo->prepare(
+        "SELECT COUNT(DISTINCT user_id) FROM profile_views
+         WHERE agent_id=:id AND user_id IS NOT NULL
+           AND viewed_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
+    );
+    $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+    $stmt->execute();
+    $logged_viewer_count = (int)$stmt->fetchColumn();
+
+} catch (PDOException $e) {
+    // user_id カラム未追加の環境では空のまま続行
+}
+
 function diff_html($diff) {
     if ($diff > 0) return '<span style="color:#2e7d32; font-weight:bold;">+' . $diff . '</span>';
     if ($diff < 0) return '<span style="color:#c62828; font-weight:bold;">' . $diff . '</span>';
@@ -155,6 +215,162 @@ function diff_html($diff) {
     <link rel="stylesheet" href="css/admin.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* ── 属性分析セクション ── */
+        .section-sub {
+            font-size: 0.82rem;
+            color: #999;
+            margin: -2px 0 20px;
+            line-height: 1.5;
+        }
+        .doughnut-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+        }
+        .doughnut-wrap h4 {
+            font-size: 0.86rem;
+            font-weight: 700;
+            color: #555;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .doughnut-container {
+            position: relative;
+            height: 230px;
+        }
+        .no-attr-data {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 48px 20px;
+            color: #ccc;
+            font-size: 0.9rem;
+            background: #fafafa;
+            border-radius: 8px;
+            border: 1.5px dashed #e8e8e8;
+        }
+        .no-attr-data .no-attr-icon {
+            display: block;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        /* ── プレミアムティーザー ── */
+        .teaser-card {
+            background: linear-gradient(135deg, #0d1f3c 0%, #004e92 60%, #0077cc 100%);
+            border-radius: 16px;
+            padding: 52px 40px 44px;
+            text-align: center;
+            color: #fff;
+            margin-top: 24px;
+            position: relative;
+            overflow: hidden;
+        }
+        .teaser-card::before {
+            content: '';
+            position: absolute;
+            top: -80px; right: -80px;
+            width: 260px; height: 260px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .teaser-card::after {
+            content: '';
+            position: absolute;
+            bottom: -100px; left: -60px;
+            width: 300px; height: 300px;
+            background: rgba(255,255,255,0.04);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .teaser-lock {
+            font-size: 2.8rem;
+            display: block;
+            margin-bottom: 14px;
+            position: relative;
+            z-index: 1;
+        }
+        .teaser-card h3 {
+            font-size: 1.2rem;
+            font-weight: 800;
+            line-height: 1.7;
+            color: #fff;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+        .teaser-card h3 strong {
+            color: #f4c430;
+            font-size: 1.45rem;
+        }
+        .teaser-card .teaser-desc {
+            font-size: 0.9rem;
+            color: rgba(255,255,255,0.72);
+            line-height: 1.8;
+            margin-bottom: 28px;
+            position: relative;
+            z-index: 1;
+        }
+        .teaser-features {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 1;
+        }
+        .teaser-feature {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 10px;
+            padding: 14px 20px;
+            font-size: 0.82rem;
+            color: #fff;
+            min-width: 130px;
+            backdrop-filter: blur(4px);
+        }
+        .teaser-feature .feat-icon {
+            display: block;
+            font-size: 1.4rem;
+            margin-bottom: 6px;
+        }
+        .btn-upgrade {
+            display: inline-block;
+            padding: 16px 44px;
+            background: #f4c430;
+            color: #1a2a4a;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 800;
+            text-decoration: none;
+            transition: transform 0.15s, box-shadow 0.15s;
+            position: relative;
+            z-index: 1;
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 16px rgba(244,196,48,0.35);
+        }
+        .btn-upgrade:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(244,196,48,0.5);
+        }
+        .teaser-note {
+            font-size: 0.74rem;
+            color: rgba(255,255,255,0.38);
+            margin-top: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        @media (max-width: 640px) {
+            .doughnut-grid { grid-template-columns: 1fr; }
+            .teaser-card { padding: 36px 20px 32px; }
+            .teaser-features { gap: 10px; }
+            .teaser-feature { min-width: 110px; padding: 12px 14px; }
+            .btn-upgrade { padding: 14px 28px; font-size: 0.93rem; }
+        }
+    </style>
 </head>
 <body>
 
@@ -273,10 +489,93 @@ function diff_html($diff) {
                 </div>
             </div>
 
+            <!-- 閲覧ユーザーの属性分析 -->
+            <div class="chart-card">
+                <h3>
+                    <span class="material-icons-outlined" style="color:#004e92;">group</span>
+                    👤 閲覧ユーザーの属性分析
+                </h3>
+                <p class="section-sub">過去30日間にプロフィールを閲覧したログイン済みユーザーの属性（<?= number_format($logged_viewer_count) ?>人）</p>
+
+                <div class="doughnut-grid">
+                    <?php if (empty($area_data) && empty($diag_data)): ?>
+                        <div class="no-attr-data">
+                            <span class="no-attr-icon">📊</span>
+                            まだデータが蓄積されていません。<br>
+                            ユーザーがログイン状態でプロフィールを閲覧すると属性データが表示されます。
+                        </div>
+                    <?php else: ?>
+                        <div class="doughnut-wrap">
+                            <h4>エリア別 閲覧割合</h4>
+                            <?php if (!empty($area_data)): ?>
+                            <div class="doughnut-container">
+                                <canvas id="areaChart"></canvas>
+                            </div>
+                            <?php else: ?>
+                            <div class="no-attr-data" style="padding:28px 16px;">データなし</div>
+                            <?php endif; ?>
+                        </div>
+                        <div class="doughnut-wrap">
+                            <h4>診断タイプ別 閲覧割合</h4>
+                            <?php if (!empty($diag_data)): ?>
+                            <div class="doughnut-container">
+                                <canvas id="diagChart"></canvas>
+                            </div>
+                            <?php else: ?>
+                            <div class="no-attr-data" style="padding:28px 16px;">データなし</div>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <?php /* TODO: プレミアムプラン導入時にロックUIを復活させる
+            <!-- プレミアムプラン ティーザー -->
+            <div class="teaser-card">
+                <span class="teaser-lock">🔒</span>
+                <h3>
+                    過去30日間にあなたに興味を持ったユーザー<br>
+                    <strong><?= number_format($logged_viewer_count) ?>人</strong>の詳細プロフィールを閲覧できます
+                </h3>
+                <p class="teaser-desc">
+                    ダイレクトスカウト機能で気になるユーザーに直接メッセージを送り、<br>
+                    待ちの営業から、攻めの営業へ。成約率を大幅に改善しましょう。
+                </p>
+                <div class="teaser-features">
+                    <div class="teaser-feature">
+                        <span class="feat-icon">📋</span>
+                        閲覧ユーザーの<br>詳細プロフィール
+                    </div>
+                    <div class="teaser-feature">
+                        <span class="feat-icon">✉️</span>
+                        ダイレクト<br>スカウト送信
+                    </div>
+                    <div class="teaser-feature">
+                        <span class="feat-icon">📈</span>
+                        詳細な<br>アクセス解析
+                    </div>
+                    <div class="teaser-feature">
+                        <span class="feat-icon">🏅</span>
+                        プレミアム<br>バッジ表示
+                    </div>
+                </div>
+                <a href="#" class="btn-upgrade">
+                    プレミアムプランにアップグレード（月額 ¥3,980）
+                </a>
+                <p class="teaser-note">※ 現在準備中のモックアップです。正式リリース時にご案内いたします。</p>
+            </div>
+            */ ?>
+
         </main>
     </div>
 
     <script>
+    const CHART_COLORS = [
+        '#004e92','#f4c430','#2ecc71','#e74c3c',
+        '#9b59b6','#1abc9c','#e67e22','#95a5a6',
+        '#3498db','#e91e63'
+    ];
+
     const labels = <?= json_encode($chart_labels) ?>;
     const data   = <?= json_encode($chart_data) ?>;
 
@@ -327,6 +626,82 @@ function diff_html($diff) {
             }
         }
     });
+
+    // ── エリア別ドーナツチャート ──
+    const areaLabels = <?= json_encode($area_labels) ?>;
+    const areaData   = <?= json_encode($area_data) ?>;
+    if (areaLabels.length > 0 && document.getElementById('areaChart')) {
+        new Chart(document.getElementById('areaChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: areaLabels,
+                datasets: [{
+                    data: areaData,
+                    backgroundColor: CHART_COLORS.slice(0, areaLabels.length),
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '58%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { font: { size: 11 }, color: '#666', boxWidth: 12, padding: 10 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(c) {
+                                const total = c.dataset.data.reduce((a,b) => a+b, 0);
+                                const pct   = total > 0 ? Math.round(c.parsed / total * 100) : 0;
+                                return c.label + ': ' + c.parsed + '件 (' + pct + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ── 診断タイプ別ドーナツチャート ──
+    const diagLabels = <?= json_encode($diag_labels) ?>;
+    const diagData   = <?= json_encode($diag_data) ?>;
+    if (diagLabels.length > 0 && document.getElementById('diagChart')) {
+        new Chart(document.getElementById('diagChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: diagLabels,
+                datasets: [{
+                    data: diagData,
+                    backgroundColor: CHART_COLORS.slice(0, diagLabels.length),
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '58%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { font: { size: 11 }, color: '#666', boxWidth: 12, padding: 10 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(c) {
+                                const total = c.dataset.data.reduce((a,b) => a+b, 0);
+                                const pct   = total > 0 ? Math.round(c.parsed / total * 100) : 0;
+                                return c.label + ': ' + c.parsed + '件 (' + pct + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
     </script>
 
 </body>

@@ -45,9 +45,31 @@ function redirect($file_name) {
     exit();
 }
 
+// セッション有効期限（秒）: 最終操作から2時間
+// TODO: 本リリース（有料化）時にここの機能制限を復活させる場合、この定数も見直すこと
+define('SESSION_LIFETIME', 7200);
+
 // ログインチェック関数
 // $type: '' = チェックなし / 'agent' = Agent専用 / 'user' = User専用 / 'admin' = Admin専用
 function loginCheck($type = '') {
+    // ── セッション有効期限チェック（最終操作から2時間） ──
+    if (isset($_SESSION['last_activity'])) {
+        if (time() - $_SESSION['last_activity'] > SESSION_LIFETIME) {
+            // 期限切れ: セッションを完全破棄してログインページへ
+            session_unset();
+            session_destroy();
+            $login_page = match($type) {
+                'agent' => 'login_agent.php',
+                'admin' => 'login_admin.php',
+                default => 'login_user.php',
+            };
+            redirect($login_page);
+        }
+    }
+    // 操作のたびに最終操作時刻を更新（タイムアウトをリセット）
+    $_SESSION['last_activity'] = time();
+
+    // ── セッション認証チェック ──
     // セッション未認証はログインページへ
     if (!isset($_SESSION['chk_ssid']) || $_SESSION['chk_ssid'] !== session_id()) {
         $login_page = match($type) {
