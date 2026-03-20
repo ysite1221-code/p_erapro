@@ -90,6 +90,16 @@ $stmt->bindValue(':uid2', $user_id_q,  PDO::PARAM_INT);
 $stmt->execute();
 $messages = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// 通報対象IDを確定
+$report_target_id = ($user_type === 'user') ? $agent_id_q : $user_id_q;
+
+// フラッシュメッセージ取得・クリア
+$flash_message = '';
+if (!empty($_SESSION['flash_message'])) {
+    $flash_message = $_SESSION['flash_message'];
+    unset($_SESSION['flash_message']);
+}
+
 // 自分のメッセージ判定用
 // user: sender_type=1 AND sender_id=my_id
 // agent: sender_type=2 AND sender_id=my_id
@@ -254,6 +264,44 @@ function is_mine($msg, $user_type, $my_id) {
             color: #aaa;
             margin: 8px 0;
         }
+
+        /* 通報ボタン */
+        .btn-report {
+            margin-left: auto;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.78rem;
+            color: #bbb;
+            background: none;
+            border: 1px solid #e0e0e0;
+            border-radius: 20px;
+            padding: 5px 12px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: color 0.15s, border-color 0.15s, background 0.15s;
+            text-decoration: none;
+            font-family: inherit;
+        }
+        .btn-report:hover {
+            color: #dc3545;
+            border-color: #dc3545;
+            background: #fff5f5;
+        }
+
+        /* フラッシュメッセージ */
+        .flash-message {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            border-radius: 6px;
+            padding: 10px 16px;
+            font-size: 0.88rem;
+            margin: 12px 16px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
     </style>
 </head>
 <body>
@@ -297,7 +345,17 @@ function is_mine($msg, $user_type, $my_id) {
             <?php endif; ?>
             <img src="<?= h($partner_img) ?>" class="chat-partner-img" alt="<?= h($partner_name) ?>">
             <span class="chat-partner-name"><?= h($partner_name) ?></span>
+
+            <!-- 通報フォーム -->
+            <form action="report_act.php" method="post" id="reportForm" style="margin-left:auto;">
+                <input type="hidden" name="target_id" value="<?= $report_target_id ?>">
+                <button type="button" class="btn-report" id="reportBtn">🚨 通報</button>
+            </form>
         </div>
+
+        <?php if ($flash_message): ?>
+        <div class="flash-message">✅ <?= h($flash_message) ?></div>
+        <?php endif; ?>
 
         <!-- メッセージリスト -->
         <div class="chat-messages" id="chatMessages">
@@ -440,6 +498,13 @@ function appendBubble(text, createdAt, mine) {
 window.addEventListener('load', function () {
     const cm = document.getElementById('chatMessages');
     cm.scrollTop = cm.scrollHeight;
+});
+
+// 通報ボタン
+document.getElementById('reportBtn').addEventListener('click', function () {
+    if (confirm('「' + partnerName + '」さんを運営に通報しますか？\n\n内容を確認の上、適切に対応いたします。')) {
+        document.getElementById('reportForm').submit();
+    }
 });
 </script>
 

@@ -51,6 +51,22 @@ if ($is_user) {
     }
 }
 
+// 過去のやり取りが存在するか確認
+$has_thread = false;
+if ($is_user) {
+    $chk = $pdo->prepare(
+        "SELECT COUNT(*) FROM messages
+         WHERE (sender_type=1 AND sender_id=:uid  AND receiver_id=:aid)
+            OR (sender_type=2 AND sender_id=:aid2 AND receiver_id=:uid2)"
+    );
+    $chk->bindValue(':uid',  (int)$_SESSION['id'], PDO::PARAM_INT);
+    $chk->bindValue(':aid',  $agent_id,            PDO::PARAM_INT);
+    $chk->bindValue(':aid2', $agent_id,            PDO::PARAM_INT);
+    $chk->bindValue(':uid2', (int)$_SESSION['id'], PDO::PARAM_INT);
+    $chk->execute();
+    $has_thread = (int)$chk->fetchColumn() > 0;
+}
+
 // プロフィール閲覧トラッキング（自分自身は除外）
 $viewer_is_agent = (
     isset($_SESSION['chk_ssid']) &&
@@ -437,7 +453,11 @@ $tags = array_filter(array_map('trim', explode(',', $row['tags'] ?? '')));
         <div class="action-area">
             <?php if ($is_user): ?>
 
-                <a href="message_room.php?agent_id=<?= $agent_id ?>" class="btn-consult">💬 この人に相談する</a>
+                <?php if ($has_thread): ?>
+                <a href="message_room.php?agent_id=<?= $agent_id ?>" class="btn-consult">💬 メッセージの続きを見る</a>
+                <?php else: ?>
+                <a href="consult_form.php?agent_id=<?= $agent_id ?>" class="btn-consult">💬 相談フォームへ進む</a>
+                <?php endif; ?>
 
                 <button
                     class="btn-fav btn-fav-heart <?= ($fav_status === 1) ? 'active' : '' ?>"
